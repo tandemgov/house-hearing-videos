@@ -1,0 +1,1828 @@
+{
+  "overall": {
+    "total_hearings": 13024,
+    "matched": 4082,
+    "match_rate": 31.3,
+    "high_confidence": 3920,
+    "high_confidence_rate": 30.1,
+    "by_method": [
+      {
+        "match_method": "no_match",
+        "count": 8830
+      },
+      {
+        "match_method": "exact_date_title",
+        "count": 1492
+      },
+      {
+        "match_method": "fuzzy_title_exact_date",
+        "count": 1072
+      },
+      {
+        "match_method": "event_id_exact",
+        "count": 1070
+      },
+      {
+        "match_method": "substring_nearby_date",
+        "count": 286
+      },
+      {
+        "match_method": "description_bills",
+        "count": 138
+      },
+      {
+        "match_method": "no_match_deduped",
+        "count": 112
+      },
+      {
+        "match_method": "fuzzy_title_relaxed_date",
+        "count": 24
+      }
+    ],
+    "by_committee": [
+      {
+        "committee_code": "hsfa00",
+        "total": 1279,
+        "matched": 340,
+        "high_confidence": 323
+      },
+      {
+        "committee_code": "hsgo00",
+        "total": 1229,
+        "matched": 198,
+        "high_confidence": 196
+      },
+      {
+        "committee_code": "hsif00",
+        "total": 1185,
+        "matched": 638,
+        "high_confidence": 606
+      },
+      {
+        "committee_code": "hsas00",
+        "total": 1007,
+        "matched": 269,
+        "high_confidence": 268
+      },
+      {
+        "committee_code": "hsba00",
+        "total": 999,
+        "matched": 224,
+        "high_confidence": 224
+      },
+      {
+        "committee_code": "hsju00",
+        "total": 942,
+        "matched": 440,
+        "high_confidence": 440
+      },
+      {
+        "committee_code": "hshm00",
+        "total": 720,
+        "matched": 366,
+        "high_confidence": 362
+      },
+      {
+        "committee_code": "hssy00",
+        "total": 679,
+        "matched": 297,
+        "high_confidence": 293
+      },
+      {
+        "committee_code": "hspw00",
+        "total": 660,
+        "matched": 215,
+        "high_confidence": 213
+      },
+      {
+        "committee_code": "hssm00",
+        "total": 643,
+        "matched": 143,
+        "high_confidence": 140
+      },
+      {
+        "committee_code": "hsii00",
+        "total": 634,
+        "matched": 183,
+        "high_confidence": 129
+      },
+      {
+        "committee_code": "hsvr00",
+        "total": 603,
+        "matched": 196,
+        "high_confidence": 168
+      },
+      {
+        "committee_code": "hsed00",
+        "total": 531,
+        "matched": 246,
+        "high_confidence": 240
+      },
+      {
+        "committee_code": "hsap00",
+        "total": 449,
+        "matched": 29,
+        "high_confidence": 29
+      },
+      {
+        "committee_code": "hswm00",
+        "total": 410,
+        "matched": 59,
+        "high_confidence": 59
+      },
+      {
+        "committee_code": "hsag00",
+        "total": 311,
+        "matched": 108,
+        "high_confidence": 107
+      },
+      {
+        "committee_code": "hsha00",
+        "total": 229,
+        "matched": 75,
+        "high_confidence": 68
+      },
+      {
+        "committee_code": "hsbu00",
+        "total": 145,
+        "matched": 55,
+        "high_confidence": 55
+      },
+      {
+        "committee_code": "jcpk00",
+        "total": 107,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "",
+        "total": 95,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hlcn00",
+        "total": 44,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hsru00",
+        "total": 24,
+        "matched": 1,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hlmh00",
+        "total": 22,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hlgw00",
+        "total": 20,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hlij00",
+        "total": 16,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hlzi00",
+        "total": 15,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "jcse00",
+        "total": 14,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hlig00",
+        "total": 4,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "sshr00",
+        "total": 2,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hhah00",
+        "total": 1,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "sssb00",
+        "total": 1,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "ssva00",
+        "total": 1,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hsso00",
+        "total": 1,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hlse00",
+        "total": 1,
+        "matched": 0,
+        "high_confidence": 0
+      },
+      {
+        "committee_code": "hsas29",
+        "total": 1,
+        "matched": 0,
+        "high_confidence": 0
+      }
+    ]
+  },
+  "per_congress": {
+    "119": {
+      "total_hearings": 370,
+      "matched": 230,
+      "match_rate": 62.2,
+      "high_confidence": 222,
+      "high_confidence_rate": 60.0,
+      "by_method": [
+        {
+          "match_method": "no_match",
+          "count": 135
+        },
+        {
+          "match_method": "exact_date_title",
+          "count": 90
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 67
+        },
+        {
+          "match_method": "event_id_exact",
+          "count": 57
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 8
+        },
+        {
+          "match_method": "description_bills",
+          "count": 5
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 5
+        },
+        {
+          "match_method": "fuzzy_title_relaxed_date",
+          "count": 3
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsgo00",
+          "total": 55,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 48,
+          "matched": 45,
+          "high_confidence": 45
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 38,
+          "matched": 34,
+          "high_confidence": 32
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 30,
+          "matched": 26,
+          "high_confidence": 26
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 25,
+          "matched": 24,
+          "high_confidence": 24
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 25,
+          "matched": 18,
+          "high_confidence": 17
+        },
+        {
+          "committee_code": "hsfa00",
+          "total": 23,
+          "matched": 21,
+          "high_confidence": 21
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 22,
+          "matched": 21,
+          "high_confidence": 20
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 20,
+          "matched": 5,
+          "high_confidence": 2
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 19,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 18,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 15,
+          "matched": 15,
+          "high_confidence": 15
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 13,
+          "matched": 13,
+          "high_confidence": 12
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 8,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 4,
+          "matched": 4,
+          "high_confidence": 4
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 3,
+          "matched": 3,
+          "high_confidence": 3
+        },
+        {
+          "committee_code": "hsru00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hlse00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "sssb00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "118": {
+      "total_hearings": 1301,
+      "matched": 831,
+      "match_rate": 63.9,
+      "high_confidence": 808,
+      "high_confidence_rate": 62.1,
+      "by_method": [
+        {
+          "match_method": "no_match",
+          "count": 459
+        },
+        {
+          "match_method": "exact_date_title",
+          "count": 274
+        },
+        {
+          "match_method": "event_id_exact",
+          "count": 254
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 247
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 33
+        },
+        {
+          "match_method": "description_bills",
+          "count": 22
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 11
+        },
+        {
+          "match_method": "fuzzy_title_relaxed_date",
+          "count": 1
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsii00",
+          "total": 154,
+          "matched": 102,
+          "high_confidence": 97
+        },
+        {
+          "committee_code": "hsgo00",
+          "total": 133,
+          "matched": 2,
+          "high_confidence": 2
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 104,
+          "matched": 102,
+          "high_confidence": 102
+        },
+        {
+          "committee_code": "hsfa00",
+          "total": 96,
+          "matched": 89,
+          "high_confidence": 86
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 92,
+          "matched": 76,
+          "high_confidence": 76
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 84,
+          "matched": 81,
+          "high_confidence": 81
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 77,
+          "matched": 67,
+          "high_confidence": 67
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 75,
+          "matched": 40,
+          "high_confidence": 40
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 71,
+          "matched": 50,
+          "high_confidence": 35
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 70,
+          "matched": 49,
+          "high_confidence": 49
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 58,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 58,
+          "matched": 55,
+          "high_confidence": 55
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 53,
+          "matched": 41,
+          "high_confidence": 41
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 46,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 39,
+          "matched": 30,
+          "high_confidence": 30
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 33,
+          "matched": 15,
+          "high_confidence": 15
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 27,
+          "matched": 21,
+          "high_confidence": 21
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 14,
+          "matched": 10,
+          "high_confidence": 10
+        },
+        {
+          "committee_code": "",
+          "total": 11,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 2,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsru00",
+          "total": 2,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcse00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsas29",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "117": {
+      "total_hearings": 1139,
+      "matched": 829,
+      "match_rate": 72.8,
+      "high_confidence": 816,
+      "high_confidence_rate": 71.6,
+      "by_method": [
+        {
+          "match_method": "event_id_exact",
+          "count": 394
+        },
+        {
+          "match_method": "exact_date_title",
+          "count": 285
+        },
+        {
+          "match_method": "no_match",
+          "count": 255
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 114
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 55
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 23
+        },
+        {
+          "match_method": "description_bills",
+          "count": 9
+        },
+        {
+          "match_method": "fuzzy_title_relaxed_date",
+          "count": 4
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsgo00",
+          "total": 109,
+          "matched": 82,
+          "high_confidence": 82
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 107,
+          "matched": 86,
+          "high_confidence": 86
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 97,
+          "matched": 24,
+          "high_confidence": 24
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 85,
+          "matched": 82,
+          "high_confidence": 80
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 82,
+          "matched": 51,
+          "high_confidence": 51
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 81,
+          "matched": 74,
+          "high_confidence": 74
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 73,
+          "matched": 73,
+          "high_confidence": 73
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 72,
+          "matched": 71,
+          "high_confidence": 71
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 69,
+          "matched": 63,
+          "high_confidence": 62
+        },
+        {
+          "committee_code": "hsfa00",
+          "total": 64,
+          "matched": 59,
+          "high_confidence": 57
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 61,
+          "matched": 61,
+          "high_confidence": 60
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 40,
+          "matched": 13,
+          "high_confidence": 13
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 38,
+          "matched": 37,
+          "high_confidence": 37
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 28,
+          "matched": 20,
+          "high_confidence": 13
+        },
+        {
+          "committee_code": "hlcn00",
+          "total": 25,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 24,
+          "matched": 19,
+          "high_confidence": 19
+        },
+        {
+          "committee_code": "hlmh00",
+          "total": 21,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hlij00",
+          "total": 16,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 16,
+          "matched": 14,
+          "high_confidence": 14
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 11,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsru00",
+          "total": 9,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "",
+          "total": 6,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcse00",
+          "total": 5,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "116": {
+      "total_hearings": 1375,
+      "matched": 924,
+      "match_rate": 67.2,
+      "high_confidence": 896,
+      "high_confidence_rate": 65.2,
+      "by_method": [
+        {
+          "match_method": "exact_date_title",
+          "count": 440
+        },
+        {
+          "match_method": "no_match",
+          "count": 420
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 333
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 86
+        },
+        {
+          "match_method": "event_id_exact",
+          "count": 37
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 31
+        },
+        {
+          "match_method": "description_bills",
+          "count": 24
+        },
+        {
+          "match_method": "fuzzy_title_relaxed_date",
+          "count": 4
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsgo00",
+          "total": 134,
+          "matched": 100,
+          "high_confidence": 100
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 128,
+          "matched": 118,
+          "high_confidence": 117
+        },
+        {
+          "committee_code": "hsfa00",
+          "total": 117,
+          "matched": 107,
+          "high_confidence": 97
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 110,
+          "matched": 80,
+          "high_confidence": 80
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 108,
+          "matched": 36,
+          "high_confidence": 36
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 97,
+          "matched": 77,
+          "high_confidence": 75
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 94,
+          "matched": 33,
+          "high_confidence": 33
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 83,
+          "matched": 57,
+          "high_confidence": 56
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 82,
+          "matched": 65,
+          "high_confidence": 65
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 66,
+          "matched": 60,
+          "high_confidence": 60
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 65,
+          "matched": 58,
+          "high_confidence": 57
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 55,
+          "matched": 19,
+          "high_confidence": 14
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 40,
+          "matched": 18,
+          "high_confidence": 16
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 40,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 38,
+          "matched": 37,
+          "high_confidence": 37
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 34,
+          "matched": 27,
+          "high_confidence": 22
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 30,
+          "matched": 30,
+          "high_confidence": 30
+        },
+        {
+          "committee_code": "hlcn00",
+          "total": 19,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 9,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 9,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsru00",
+          "total": 6,
+          "matched": 1,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "",
+          "total": 6,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcse00",
+          "total": 3,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hlmh00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "ssva00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "115": {
+      "total_hearings": 1429,
+      "matched": 516,
+      "match_rate": 36.1,
+      "high_confidence": 492,
+      "high_confidence_rate": 34.4,
+      "by_method": [
+        {
+          "match_method": "no_match",
+          "count": 909
+        },
+        {
+          "match_method": "event_id_exact",
+          "count": 208
+        },
+        {
+          "match_method": "exact_date_title",
+          "count": 187
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 64
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 33
+        },
+        {
+          "match_method": "description_bills",
+          "count": 19
+        },
+        {
+          "match_method": "fuzzy_title_relaxed_date",
+          "count": 5
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 4
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsif00",
+          "total": 179,
+          "matched": 41,
+          "high_confidence": 33
+        },
+        {
+          "committee_code": "hsfa00",
+          "total": 175,
+          "matched": 56,
+          "high_confidence": 56
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 123,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 119,
+          "matched": 110,
+          "high_confidence": 110
+        },
+        {
+          "committee_code": "hsgo00",
+          "total": 112,
+          "matched": 2,
+          "high_confidence": 2
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 87,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 84,
+          "matched": 60,
+          "high_confidence": 60
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 74,
+          "matched": 64,
+          "high_confidence": 64
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 74,
+          "matched": 72,
+          "high_confidence": 72
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 68,
+          "matched": 63,
+          "high_confidence": 63
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 57,
+          "matched": 5,
+          "high_confidence": 5
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 55,
+          "matched": 16,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 46,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 41,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 34,
+          "matched": 2,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 29,
+          "matched": 24,
+          "high_confidence": 24
+        },
+        {
+          "committee_code": "",
+          "total": 29,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 15,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 14,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 9,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcse00",
+          "total": 5,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "114": {
+      "total_hearings": 1694,
+      "matched": 421,
+      "match_rate": 24.9,
+      "high_confidence": 388,
+      "high_confidence_rate": 22.9,
+      "by_method": [
+        {
+          "match_method": "no_match",
+          "count": 1269
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 136
+        },
+        {
+          "match_method": "event_id_exact",
+          "count": 120
+        },
+        {
+          "match_method": "exact_date_title",
+          "count": 86
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 46
+        },
+        {
+          "match_method": "description_bills",
+          "count": 28
+        },
+        {
+          "match_method": "fuzzy_title_relaxed_date",
+          "count": 5
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 4
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsfa00",
+          "total": 237,
+          "matched": 2,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 180,
+          "matched": 108,
+          "high_confidence": 102
+        },
+        {
+          "committee_code": "hsgo00",
+          "total": 173,
+          "matched": 11,
+          "high_confidence": 9
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 144,
+          "matched": 62,
+          "high_confidence": 61
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 113,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 98,
+          "matched": 76,
+          "high_confidence": 76
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 95,
+          "matched": 64,
+          "high_confidence": 61
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 86,
+          "matched": 50,
+          "high_confidence": 48
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 83,
+          "matched": 33,
+          "high_confidence": 27
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 74,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 68,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 62,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 61,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 54,
+          "matched": 9,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 54,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 51,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 16,
+          "matched": 4,
+          "high_confidence": 2
+        },
+        {
+          "committee_code": "",
+          "total": 13,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hlzi00",
+          "total": 13,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 12,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsru00",
+          "total": 2,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 2,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "sshr00",
+          "total": 2,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hhah00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "113": {
+      "total_hearings": 1753,
+      "matched": 187,
+      "match_rate": 10.7,
+      "high_confidence": 173,
+      "high_confidence_rate": 9.9,
+      "by_method": [
+        {
+          "match_method": "no_match",
+          "count": 1565
+        },
+        {
+          "match_method": "exact_date_title",
+          "count": 120
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 36
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 17
+        },
+        {
+          "match_method": "description_bills",
+          "count": 12
+        },
+        {
+          "match_method": "fuzzy_title_relaxed_date",
+          "count": 2
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 1
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsfa00",
+          "total": 238,
+          "matched": 6,
+          "high_confidence": 6
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 188,
+          "matched": 170,
+          "high_confidence": 166
+        },
+        {
+          "committee_code": "hsgo00",
+          "total": 158,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 130,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 119,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 101,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 95,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 93,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 89,
+          "matched": 1,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 87,
+          "matched": 8,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 82,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 81,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 77,
+          "matched": 1,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 72,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 63,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 24,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 15,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "",
+          "total": 15,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 14,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 9,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hlzi00",
+          "total": 2,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsso00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "112": {
+      "total_hearings": 2044,
+      "matched": 79,
+      "match_rate": 3.9,
+      "high_confidence": 63,
+      "high_confidence_rate": 3.1,
+      "by_method": [
+        {
+          "match_method": "no_match",
+          "count": 1964
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 35
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 18
+        },
+        {
+          "match_method": "description_bills",
+          "count": 16
+        },
+        {
+          "match_method": "exact_date_title",
+          "count": 10
+        },
+        {
+          "match_method": "no_match_deduped",
+          "count": 1
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsgo00",
+          "total": 194,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsfa00",
+          "total": 193,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 186,
+          "matched": 60,
+          "high_confidence": 50
+        },
+        {
+          "committee_code": "hsas00",
+          "total": 160,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 160,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 157,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 129,
+          "matched": 3,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 124,
+          "matched": 8,
+          "high_confidence": 7
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 110,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 106,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 101,
+          "matched": 3,
+          "high_confidence": 3
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 85,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 81,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 77,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 69,
+          "matched": 3,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 35,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 28,
+          "matched": 1,
+          "high_confidence": 1
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 26,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 18,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "",
+          "total": 4,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsru00",
+          "total": 1,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    },
+    "111": {
+      "total_hearings": 1919,
+      "matched": 65,
+      "match_rate": 3.4,
+      "high_confidence": 62,
+      "high_confidence_rate": 3.2,
+      "by_method": [
+        {
+          "match_method": "no_match",
+          "count": 1854
+        },
+        {
+          "match_method": "fuzzy_title_exact_date",
+          "count": 40
+        },
+        {
+          "match_method": "substring_nearby_date",
+          "count": 22
+        },
+        {
+          "match_method": "description_bills",
+          "count": 3
+        }
+      ],
+      "by_committee": [
+        {
+          "committee_code": "hsas00",
+          "total": 187,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsba00",
+          "total": 165,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsgo00",
+          "total": 161,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsif00",
+          "total": 161,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsju00",
+          "total": 157,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hspw00",
+          "total": 138,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsfa00",
+          "total": 136,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hssy00",
+          "total": 108,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsvr00",
+          "total": 102,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hshm00",
+          "total": 83,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsap00",
+          "total": 81,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsed00",
+          "total": 77,
+          "matched": 61,
+          "high_confidence": 60
+        },
+        {
+          "committee_code": "hssm00",
+          "total": 73,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsii00",
+          "total": 67,
+          "matched": 2,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsag00",
+          "total": 60,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hswm00",
+          "total": 40,
+          "matched": 2,
+          "high_confidence": 2
+        },
+        {
+          "committee_code": "hsbu00",
+          "total": 32,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsha00",
+          "total": 29,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "jcpk00",
+          "total": 24,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hlgw00",
+          "total": 20,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "",
+          "total": 11,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hlig00",
+          "total": 4,
+          "matched": 0,
+          "high_confidence": 0
+        },
+        {
+          "committee_code": "hsru00",
+          "total": 3,
+          "matched": 0,
+          "high_confidence": 0
+        }
+      ]
+    }
+  }
+}
