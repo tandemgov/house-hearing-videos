@@ -39,6 +39,37 @@ class Committee:
 # Additional YouTube channels not in the congress-legislators YAML.
 # Many committees have separate majority/minority/events channels.
 EXTRA_CHANNELS: dict[str, list[str]] = {
+    "hsgo00": [
+        "UCn8TJ6Tyq2aGvhybME_itDQ",  # GOP Oversight (@OversightandGovernmentReform)
+        "UCuwpe69VxVzy4maI6ymmm6A",  # HouseResourceOrg (public.resource.org archive, pre-2011)
+    ],
+    "hsba00": [
+        "UCDQFSLK68yQLJPb8E9ZWmQQ",  # Financial Services GOP (@GOPFinancialServices)
+    ],
+    "hsif00": [
+        "UC5s1kIfkfWbap31d5ef-VtQ",  # Energy & Commerce majority (@energyandcommerce)
+    ],
+    "hsbu00": [
+        "UCHPaSWprI94UTePSMv0tqnw",  # House Budget Committee GOP (@HouseBudgetGOP)
+    ],
+    "hsfa00": [
+        "UCtxAmeCl0xtSuo7tHZpgcQA",  # Foreign Affairs Republicans (@HouseForeignGOP)
+    ],
+    "hsha00": [
+        "UC8dXTgFnWF8NraBKhF040Qg",  # House Administration majority (@CommitteeonHouseAdmin)
+    ],
+    "hsed00": [
+        "UC8Ewe7WqGg01KRNjJCO5cjg",  # Education & Workforce majority (@EdWorkforceCmte)
+    ],
+    "hsru00": [
+        "UCDNcorctkmOpBfr4sgu6t3w",  # Rules Committee majority (@HouseRulesCommittee)
+    ],
+    "hsag00": [
+        "UCWtWf-QUTnJ-UMP5ZNWVB5Q",  # Agriculture majority (@AgRepublicans)
+    ],
+    "hssm00": [
+        "UCoXvuW2IhFawuNyk4yL3EkQ",  # Small Business majority (@HouseSmallBiz)
+    ],
     "hshm00": [
         "UCgmYwMNLJaRPj7TPgCdOllg",  # Homeland Security Republicans
         "UChdT2snPVxfp2m8n4VDdMag",  # Homeland Security Events
@@ -54,6 +85,65 @@ EXTRA_CHANNELS: dict[str, list[str]] = {
         "UC0ADPBDC8KdU52IxuW-_X5g",  # Veterans' Affairs Democrats
     ],
 }
+
+# Select/special committees and commissions not in congress-legislators YAML.
+# These committees are not standing committees, so they must be defined manually.
+SELECT_COMMITTEES: list[dict] = [
+    {
+        "thomas_id": "HLCN",
+        "name": "House Select Committee on the Climate Crisis",
+        "system_code": "hlcn00",
+        "youtube_id": "UCqTxfzU6vYZ2-DW-y5jYvdQ",  # @HouseClimateCrisis
+    },
+    {
+        "thomas_id": "HLIJ",
+        "name": "House Select Committee to Investigate the January 6th Attack",
+        "system_code": "hlij00",
+        "youtube_id": "UCqSRsknSiyLARtzmop9dvhw",  # @January6thCmte
+    },
+    {
+        "thomas_id": "HLMH",
+        "name": "House Select Committee on the Modernization of Congress",
+        "system_code": "hlmh00",
+        "youtube_id": "UCECZaLBqABxBqN7VdtZ5sCA",  # @selectcommitteeonthemodern9383
+    },
+    {
+        "thomas_id": "HLZI",
+        "name": "House Select Committee on Benghazi",
+        "system_code": "hlzi00",
+        "youtube_id": "UCiKI7qlQqr3GfFlIzOdT_Yg",  # @theu.s.houseselectcommitte1053
+    },
+    {
+        "thomas_id": "HSZS",
+        "name": "House Select Committee on Strategic Competition with China",
+        "system_code": "hszs00",
+        "youtube_id": "UCpXe-EZd7pE7QM1daNAk0mA",  # @ChinaSelect
+    },
+    {
+        "thomas_id": "JCPK",
+        "name": "Congressional-Executive Commission on China",
+        "system_code": "jcpk00",
+        "youtube_id": "UCRAT_7MIzUolORlJhYBTzHA",  # @ChinaCommission
+    },
+    {
+        "thomas_id": "JCSE",
+        "name": "Commission on Security and Cooperation in Europe (Helsinki Commission)",
+        "system_code": "jcse00",
+        "youtube_id": "UCtFO3w68Kumz7tRyspaqF2g",  # @HelsinkiCommission
+    },
+]
+
+
+# Codes used in the committee-meeting API that differ from our canonical codes.
+# Maps meeting-API code → our canonical code so committee_matches() can resolve them.
+COMMITTEE_CODE_ALIASES: dict[str, str] = {
+    "hlzs00": "hszs00",  # China Select: meeting API uses hlzs00, we use hszs00
+}
+
+
+def resolve_committee_code(code: str) -> str:
+    """Resolve a committee code to its canonical form."""
+    return COMMITTEE_CODE_ALIASES.get(code, code)
 
 
 def _system_code_from_thomas(thomas_id: str) -> str:
@@ -145,9 +235,36 @@ def build_committee_map(committees: list[Committee]) -> dict[str, Committee]:
     return {c.system_code: c for c in committees}
 
 
+def _add_select_committees(committees: list[Committee]) -> None:
+    """Add select/special committees not in the congress-legislators YAML.
+
+    If a committee already exists but has no youtube_id, fill it in.
+    """
+    by_code = {c.system_code: c for c in committees}
+    for entry in SELECT_COMMITTEES:
+        code = entry["system_code"]
+        youtube_id = entry["youtube_id"]
+        existing = by_code.get(code)
+        if existing:
+            if not existing.youtube_id:
+                existing.youtube_id = youtube_id
+                existing.uploads_playlist_id = _uploads_playlist(youtube_id)
+            continue
+        committees.append(
+            Committee(
+                thomas_id=entry["thomas_id"],
+                name=entry["name"],
+                system_code=code,
+                youtube_id=youtube_id,
+                uploads_playlist_id=_uploads_playlist(youtube_id),
+            )
+        )
+
+
 def get_committee_map() -> dict[str, Committee]:
     """Convenience: fetch, parse, and return the committee map."""
     yaml_text = fetch_committees_yaml()
     committees = parse_committees(yaml_text)
     _apply_extra_channels(committees)
+    _add_select_committees(committees)
     return build_committee_map(committees)

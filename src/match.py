@@ -5,7 +5,58 @@ from datetime import datetime
 
 from thefuzz import fuzz
 
-from src.config import DATE_WINDOW_DAYS, FUZZY_TITLE_THRESHOLD, VIDEO_PUBLISH_SANITY_DAYS
+from src.committees import resolve_committee_code
+from src.config import (
+    DATE_WINDOW_DAYS,
+    FALLBACK_DATE_WINDOW_DAYS,
+    FUZZY_TITLE_THRESHOLD,
+    TOKEN_SET_MIN_TITLE_LENGTH,
+    TOKEN_SET_THRESHOLD,
+    VIDEO_PUBLISH_SANITY_DAYS,
+)
+
+
+def extract_description_date(description: str) -> str | None:
+    """Extract a date from a video description.
+
+    Many committees embed the hearing date in the description, e.g.:
+    "On Wednesday, September 10, 2025, at 2:00 p.m. ..."
+    This is more reliable than published_at for matching.
+    """
+    # "On [Day,] Month DD, YYYY" or "Month DD, YYYY, at HH:MM"
+    m = re.search(
+        r"(?:January|February|March|April|May|June|July|August|September|"
+        r"October|November|December)\s+(\d{1,2}),?\s*(\d{4})",
+        description,
+    )
+    if m:
+        try:
+            dt = datetime.strptime(m.group(0).replace(",", ""), "%B %d %Y")
+            return dt.strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    # MM/DD/YYYY
+    m = re.search(r"\b(\d{1,2}/\d{1,2}/\d{4})\b", description)
+    if m:
+        try:
+            dt = datetime.strptime(m.group(1), "%m/%d/%Y")
+            return dt.strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    return None
+
+
+def get_video_dates(video: dict) -> list[str]:
+    """Get all candidate dates for a video: published_at + description date."""
+    dates = []
+    if video.get("published_at"):
+        dates.append(video["published_at"])
+    desc_date = extract_description_date(video.get("description", ""))
+    if desc_date:
+        dates.append(desc_date)
+    return dates
 
 
 def normalize_title(title: str) -> str:
@@ -108,11 +159,20 @@ def extract_bill_numbers(text: str) -> set[str]:
 def committee_matches(hearing: dict, video: dict, committee_map: dict) -> bool:
     """Check if a video's channel belongs to the hearing's committee.
 
-    Also checks the parent committee channel for subcommittee hearings,
-    since subcommittees rarely have their own YouTube channels.
+    Uses effective_committee_codes (merged from hearing + meeting APIs)
+    when available, falling back to committee_codes. Also checks parent
+    committee channels for subcommittee hearings, and resolves code
+    aliases from the meeting API.
     """
     channel_id = video.get("channel_id", "")
-    for code in hearing.get("committee_codes", []):
+    codes = hearing.get("effective_committee_codes", hearing.get("committee_codes", []))
+
+    # No committee codes at all — allow any committee's videos
+    if not codes or codes == [""]:
+        return True
+
+    for code in codes:
+        code = resolve_committee_code(code)
         committee = committee_map.get(code)
         if committee and channel_id in committee.all_youtube_ids:
             return True
@@ -141,13 +201,24 @@ def match_layer_1_event_id(hearing: dict, video: dict) -> dict | None:
     return None
 
 
-def dates_match_nearby(hearing_dates: list[str], video_date: str) -> bool:
+def dates_match_nearby(
+    hearing_dates: list[str],
+    video_date: str,
+    extra_video_dates: list[str] | None = None,
+) -> bool:
     """Check if video date is within ±1 day of any hearing date.
 
     YouTube videos are often published the day after the hearing.
+    Checks both published_at and any dates extracted from description.
     """
     match, diff = dates_within_window(hearing_dates, video_date, window_days=1)
-    return match
+    if match:
+        return True
+    for vd in extra_video_dates or []:
+        m, _ = dates_within_window(hearing_dates, vd, window_days=1)
+        if m:
+            return True
+    return False
 
 
 def match_layer_2_exact(hearing: dict, video: dict) -> dict | None:
@@ -161,7 +232,8 @@ def match_layer_2_exact(hearing: dict, video: dict) -> dict | None:
     if h_title != v_title:
         return None
 
-    if not dates_match_nearby(hearing.get("dates", []), video.get("published_at", "")):
+    extra_dates = get_video_dates(video)[1:]  # skip published_at, already checked
+    if not dates_match_nearby(hearing.get("dates", []), video.get("published_at", ""), extra_dates):
         return None
 
     return {
@@ -172,7 +244,8 @@ def match_layer_2_exact(hearing: dict, video: dict) -> dict | None:
 
 def match_layer_3_fuzzy_title(hearing: dict, video: dict) -> dict | None:
     """Layer 3: Same committee + nearby date + fuzzy title. Confidence 0.70-0.90."""
-    if not dates_match_nearby(hearing.get("dates", []), video.get("published_at", "")):
+    extra_dates = get_video_dates(video)[1:]
+    if not dates_match_nearby(hearing.get("dates", []), video.get("published_at", ""), extra_dates):
         return None
 
     h_title = normalize_title(hearing.get("title", ""))
@@ -197,7 +270,8 @@ def match_layer_3_fuzzy_title(hearing: dict, video: dict) -> dict | None:
 
 def match_layer_3b_substring(hearing: dict, video: dict) -> dict | None:
     """Layer 3b: Nearby date + one title contains the other. Confidence 0.80-0.88."""
-    if not dates_match_nearby(hearing.get("dates", []), video.get("published_at", "")):
+    extra_dates = get_video_dates(video)[1:]
+    if not dates_match_nearby(hearing.get("dates", []), video.get("published_at", ""), extra_dates):
         return None
 
     h_title = normalize_title(hearing.get("title", ""))
@@ -218,6 +292,43 @@ def match_layer_3b_substring(hearing: dict, video: dict) -> dict | None:
             "method": "substring_nearby_date",
         }
     return None
+
+
+def match_layer_3c_token_set(hearing: dict, video: dict) -> dict | None:
+    """Layer 3c: Token-set ratio matching for asymmetric titles. Confidence 0.55-0.68.
+
+    Catches cases where a short hearing title's keywords are embedded in a longer
+    video title (e.g. "THE JFK FILES" vs "Task Force on the Declassification of
+    Federal Secrets: the JFK Files"). token_set_ratio scores these 100 while
+    token_sort_ratio gives ~32.
+    """
+    extra_dates = get_video_dates(video)[1:]
+    if not dates_match_nearby(hearing.get("dates", []), video.get("published_at", ""), extra_dates):
+        return None
+
+    h_title = normalize_title(hearing.get("title", ""))
+    v_title = normalize_title(video.get("title", ""))
+
+    if len(h_title) < TOKEN_SET_MIN_TITLE_LENGTH or len(v_title) < TOKEN_SET_MIN_TITLE_LENGTH:
+        return None
+
+    set_ratio = fuzz.token_set_ratio(h_title, v_title)
+    if set_ratio < TOKEN_SET_THRESHOLD:
+        return None
+
+    # Sanity floor: token_sort_ratio must show *some* overlap
+    sort_ratio = fuzz.token_sort_ratio(h_title, v_title)
+    if sort_ratio >= FUZZY_TITLE_THRESHOLD:
+        return None  # layer 3 would have caught this already
+
+    confidence = 0.55 + (set_ratio - TOKEN_SET_THRESHOLD) / (100 - TOKEN_SET_THRESHOLD) * 0.13
+
+    return {
+        "confidence": round(confidence, 2),
+        "method": "token_set_nearby_date",
+        "token_set_ratio": set_ratio,
+        "token_sort_ratio": sort_ratio,
+    }
 
 
 def match_layer_4_relaxed_date(hearing: dict, video: dict) -> dict | None:
@@ -291,6 +402,51 @@ def match_layer_5_description(hearing: dict, video: dict) -> dict | None:
     }
 
 
+def _find_api_video(
+    video_ids: list[str], all_videos: list[dict], method: str
+) -> dict | None:
+    """Find a video object for an API-provided video ID."""
+    if not video_ids:
+        return None
+    vid_id = video_ids[0]
+    for video in all_videos:
+        if video.get("video_id") == vid_id:
+            return {"confidence": 1.0, "method": method, "video": video}
+    # Video ID not in our YouTube fetch — construct minimal record
+    return {
+        "confidence": 1.0,
+        "method": method,
+        "video": {
+            "video_id": vid_id,
+            "title": None,
+            "published_at": None,
+            "channel_id": None,
+        },
+    }
+
+
+def match_layer_0_api_video(
+    hearing: dict,
+    all_videos: list[dict],
+    meeting_videos: dict[str, list[str]],
+    jacket_videos: dict[str, list[str]] | None = None,
+) -> dict | None:
+    """Layer 0: Direct YouTube link from the committee-meeting API. Confidence 1.0.
+
+    Only uses the hearing's own event_id. The jacket→video mapping from
+    the meeting API's hearingTranscript is NOT used for matching because
+    it sometimes links unrelated jackets to the wrong video. The jacket
+    mapping is still used for committee code cross-referencing and
+    api_has_video classification in validate.py.
+    """
+    event_id = hearing.get("event_id")
+    if not event_id:
+        return None
+
+    api_video_ids = meeting_videos.get(str(event_id), [])
+    return _find_api_video(api_video_ids, all_videos, "api_video_direct")
+
+
 def find_best_match(hearing: dict, videos: list[dict], committee_map: dict) -> dict | None:
     """Run all matching layers against candidate videos and return the best match."""
     best = None
@@ -306,6 +462,7 @@ def find_best_match(hearing: dict, videos: list[dict], committee_map: dict) -> d
             match_layer_2_exact,
             match_layer_3_fuzzy_title,
             match_layer_3b_substring,
+            match_layer_3c_token_set,
             match_layer_4_relaxed_date,
             match_layer_5_description,
         ]:
@@ -337,21 +494,193 @@ def _passes_date_sanity(hearing: dict, video: dict) -> bool:
     return False
 
 
-def find_best_match_with_sanity(
-    hearing: dict, videos: list[dict], committee_map: dict
+def _match_by_date_and_description(
+    hearing: dict,
+    committee_videos: list[dict],
 ) -> dict | None:
-    """Run all matching layers with date sanity checking."""
+    """Fallback matching: same committee + same date + keyword overlap in description.
+
+    When title-based matching fails, we look for videos on the same date from the
+    same committee. If there's only one candidate, match with high confidence.
+    If there are multiple, use keyword overlap between the hearing title and the
+    video title+description to disambiguate.
+
+    Confidence: 0.75-0.85 depending on overlap strength.
+    """
+    hearing_dates = hearing.get("dates", [])
+    if not hearing_dates:
+        return None
+
+    h_norm = normalize_title(hearing.get("title", ""))
+    h_words = set(w for w in h_norm.split() if len(w) > 3)
+    if len(h_words) < 2:
+        return None
+
+    # Find all committee videos within ±FALLBACK_DATE_WINDOW_DAYS
+    candidates = []
+    for video in committee_videos:
+        video_dates = get_video_dates(video)
+        nearby = False
+        for vd_str in video_dates:
+            for hd_str in hearing_dates:
+                vd = parse_date(vd_str)
+                hd = parse_date(hd_str)
+                if vd and hd and abs((vd - hd).days) <= FALLBACK_DATE_WINDOW_DAYS:
+                    nearby = True
+                    break
+            if nearby:
+                break
+        if not nearby:
+            continue
+
+        # Score by keyword overlap in title + description
+        text = normalize_title(
+            video.get("title", "") + " " + video.get("description", "")[:500]
+        )
+        text_words = set(w for w in text.split() if len(w) > 3)
+        overlap = h_words & text_words
+        overlap_ratio = len(overlap) / len(h_words) if h_words else 0
+
+        candidates.append((video, overlap_ratio, len(overlap)))
+
+    if not candidates:
+        return None
+
+    # Sort by overlap ratio descending
+    candidates.sort(key=lambda x: (-x[1], -x[2]))
+    best_video, best_ratio, best_count = candidates[0]
+
+    if len(candidates) == 1:
+        # Only one video on this date for this committee — high confidence
+        confidence = 0.85
+        return {
+            "confidence": confidence,
+            "method": "date_committee_unique",
+            "video": best_video,
+        }
+
+    # Multiple candidates — require the best to clearly beat the second
+    second_ratio = candidates[1][1]
+    if best_ratio >= 0.3 and best_count >= 3 and (best_ratio - second_ratio) >= 0.15:
+        # Scale confidence: higher overlap = more confident
+        confidence = round(0.75 + min(best_ratio, 1.0) * 0.10, 2)
+        return {
+            "confidence": confidence,
+            "method": "date_description_keywords",
+            "video": best_video,
+        }
+
+    # Relaxed tier: lower thresholds for cases with few keywords
+    if best_ratio >= 0.15 and best_count >= 1 and (best_ratio - second_ratio) >= 0.10:
+        confidence = round(0.45 + min(best_ratio, 1.0) * 0.15, 2)
+        return {
+            "confidence": confidence,
+            "method": "date_description_keywords_relaxed",
+            "video": best_video,
+        }
+
+    return None
+
+
+def _match_by_committee_date_only(
+    hearing: dict,
+    committee_videos: list[dict],
+) -> dict | None:
+    """Last-resort fallback: same committee + same date, no text matching.
+
+    For committees with generic/template video titles and empty descriptions
+    (e.g. Rules, Natural Resources). Assigns very low confidence to flag
+    for manual review.
+
+    Confidence: 0.20-0.30.
+    """
+    hearing_dates = hearing.get("dates", [])
+    if not hearing_dates:
+        return None
+
+    candidates = []
+    for video in committee_videos:
+        video_dates = get_video_dates(video)
+        for vd_str in video_dates:
+            for hd_str in hearing_dates:
+                vd = parse_date(vd_str)
+                hd = parse_date(hd_str)
+                if vd and hd and abs((vd - hd).days) <= FALLBACK_DATE_WINDOW_DAYS:
+                    candidates.append(video)
+                    break
+            else:
+                continue
+            break
+
+    if not candidates:
+        return None
+
+    if len(candidates) == 1:
+        return {
+            "confidence": 0.30,
+            "method": "date_committee_only_single",
+            "video": candidates[0],
+        }
+
+    # Multiple candidates — pick by token_set_ratio as a tiebreaker
+    h_title = normalize_title(hearing.get("title", ""))
+    scored = []
+    for video in candidates:
+        v_title = normalize_title(video.get("title", ""))
+        if h_title and v_title:
+            ratio = fuzz.token_set_ratio(h_title, v_title)
+        else:
+            ratio = 0
+        scored.append((video, ratio))
+
+    scored.sort(key=lambda x: -x[1])
+    best_video, best_ratio = scored[0]
+    confidence = round(0.20 + min(best_ratio, 100) / 100 * 0.10, 2)
+
+    return {
+        "confidence": confidence,
+        "method": "date_committee_only_best_guess",
+        "video": best_video,
+    }
+
+
+def find_best_match_with_sanity(
+    hearing: dict,
+    videos: list[dict],
+    committee_map: dict,
+    meeting_videos: dict[str, list[str]] | None = None,
+    jacket_videos: dict[str, list[str]] | None = None,
+) -> dict | None:
+    """Run all matching layers with date sanity checking.
+
+    If meeting_videos is provided, Layer 0 (API direct video) is tried first.
+    Falls back to date+description matching if title-based layers find nothing.
+    """
+    # Layer 0: API-provided video link (highest confidence, no fuzzy logic)
+    if meeting_videos or jacket_videos:
+        result = match_layer_0_api_video(
+            hearing, videos, meeting_videos or {}, jacket_videos
+        )
+        if result:
+            return result
+
     best = None
+
+    # Collect committee-scoped videos for the fallback layer
+    committee_videos = []
 
     for video in videos:
         if not committee_matches(hearing, video, committee_map):
             continue
+
+        committee_videos.append(video)
 
         for layer_fn in [
             match_layer_1_event_id,
             match_layer_2_exact,
             match_layer_3_fuzzy_title,
             match_layer_3b_substring,
+            match_layer_3c_token_set,
             match_layer_4_relaxed_date,
             match_layer_5_description,
         ]:
@@ -364,6 +693,14 @@ def find_best_match_with_sanity(
                 if best is None or result["confidence"] > best["confidence"]:
                     best = result
                 break
+
+    # Fallback: date + description keyword matching
+    if best is None and committee_videos:
+        best = _match_by_date_and_description(hearing, committee_videos)
+
+    # Last resort: same committee + same date, no text matching
+    if best is None and committee_videos:
+        best = _match_by_committee_date_only(hearing, committee_videos)
 
     return best
 
@@ -405,11 +742,16 @@ def match_all_hearings(
     hearings: list[dict],
     videos_by_committee: dict[str, list[dict]],
     committee_map: dict,
+    meeting_videos: dict[str, list[str]] | None = None,
+    jacket_videos: dict[str, list[str]] | None = None,
 ) -> list[dict]:
     """Match all hearings against all videos.
 
     Returns a list of match records (hearing + video + match metadata).
     Includes date sanity filtering and deduplication.
+
+    If meeting_videos/jacket_videos are provided, Layer 0 (API direct video)
+    is tried first for hearings with known YouTube links.
     """
     # Build a flat list of all videos for cross-committee matching
     all_videos = []
@@ -418,7 +760,9 @@ def match_all_hearings(
 
     matches = []
     for hearing in hearings:
-        result = find_best_match_with_sanity(hearing, all_videos, committee_map)
+        result = find_best_match_with_sanity(
+            hearing, all_videos, committee_map, meeting_videos, jacket_videos
+        )
         if result:
             video = result.pop("video")
             matches.append(

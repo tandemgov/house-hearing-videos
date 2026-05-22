@@ -17,6 +17,9 @@ OUTPUT_COLUMNS = [
     "match_confidence",
     "match_method",
     "event_id",
+    "loc_id",
+    "api_has_video",
+    "net_new",
     "govinfo_id",
 ]
 

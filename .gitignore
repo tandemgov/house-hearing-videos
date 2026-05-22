@@ -36,3 +36,4 @@ htmlcov/
 
 
 .local/*
+.mg-tools/*

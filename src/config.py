@@ -42,6 +42,9 @@ FUZZY_TITLE_THRESHOLD = 80  # token-sort-ratio percentage
 DATE_WINDOW_DAYS = 3
 CONFIDENCE_INCLUSION_THRESHOLD = 0.70
 VIDEO_PUBLISH_SANITY_DAYS = 30
+TOKEN_SET_MIN_TITLE_LENGTH = 10  # min normalized title length for token-set layer
+TOKEN_SET_THRESHOLD = 85  # token-set-ratio percentage
+FALLBACK_DATE_WINDOW_DAYS = 2  # +-days for fallback layers
 
 # Committee data source
 COMMITTEES_YAML_URL = (

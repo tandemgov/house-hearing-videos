@@ -1,7 +1,6 @@
 """Tests for the run_all orchestrator logic."""
 
 import polars as pl
-import pytest
 
 from src.config import MAX_CONGRESS, MIN_CONGRESS
 from src.validate import build_matches_df, coverage_report

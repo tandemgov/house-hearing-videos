@@ -125,8 +125,53 @@ def normalize_hearing(hearing: dict) -> dict:
         "committee_codes": committee_codes,
         "committee_names": committee_names,
         "event_id": event_id,
+        "loc_id": h.get("libraryOfCongressIdentifier"),
         "part": h.get("part"),
         "url": h.get("url", ""),
+    }
+
+
+def enrich_hearing_with_meeting_data(
+    hearing: dict, jacket_meeting_map: dict
+) -> dict:
+    """Cross-reference a hearing with committee-meeting API data.
+
+    Merges committee codes from both the hearing API and meeting API,
+    flags discrepancies, and fills in missing event_id from the meeting map.
+    """
+    jacket = str(hearing.get("jacket_number", ""))
+    meeting_info = jacket_meeting_map.get(jacket)
+
+    if not meeting_info:
+        return {
+            **hearing,
+            "meeting_committee_codes": [],
+            "effective_committee_codes": hearing.get("committee_codes", []),
+            "committee_code_discrepancy": False,
+        }
+
+    meeting_codes = meeting_info.get("committee_codes", [])
+    hearing_codes = hearing.get("committee_codes", [])
+
+    # Detect discrepancy: do the parent committee codes differ?
+    hearing_parents = {c[:4] for c in hearing_codes if len(c) >= 4}
+    meeting_parents = {c[:4] for c in meeting_codes if len(c) >= 4}
+    discrepancy = bool(meeting_parents and hearing_parents and meeting_parents != hearing_parents)
+
+    # Effective codes = union of both sources
+    effective = list(set(hearing_codes) | set(meeting_codes))
+
+    # Fill in event_id if hearing API didn't have one
+    event_id = hearing.get("event_id")
+    if not event_id and meeting_info.get("event_id"):
+        event_id = meeting_info["event_id"]
+
+    return {
+        **hearing,
+        "event_id": event_id,
+        "meeting_committee_codes": meeting_codes,
+        "effective_committee_codes": effective,
+        "committee_code_discrepancy": discrepancy,
     }
 
 

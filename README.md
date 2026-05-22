@@ -1,70 +1,79 @@
-# House Hearing Video Crosswalk
+# House Hearing Video Coverage
 
-An automated system that links U.S. House committee hearings (from Congress.gov) to their YouTube video recordings — closing a gap in the public record where many hearing videos are difficult to find.
+How much of the public record of House committee hearings is accessible on video? This project answers that question by cross-referencing Congress.gov hearing records, committee YouTube channels, and the Congress.gov committee-meeting API.
 
-## Why this matters
+## The coverage picture
 
-Congress.gov provides official records for House committee hearings, but links to video recordings are often missing. Many hearing records lack the `eventID` needed to connect to committee video pages, making it hard for researchers, journalists, and the public to find video of hearings they care about.
+Across the 111th–119th Congresses (2009–present), **27% of House hearings have no discoverable video recording from any source** — not on a committee YouTube channel, not linked from the Congress.gov committee-meeting API.
 
-This project builds that missing link automatically using a multi-layer matching algorithm that pairs hearings to videos by committee, date, and title similarity.
+| Congress | Years | Hearings | Video found | Coverage | No video |
+|---|---|---|---|---|---|
+| 119th | 2025–26 | 370 | 366 | 99% | 4 |
+| 118th | 2023–24 | 1,301 | 1,280 | 98% | 21 |
+| 117th | 2021–22 | 1,139 | 1,068 | 94% | 71 |
+| 116th | 2019–20 | 1,375 | 1,324 | 96% | 51 |
+| 115th | 2017–18 | 1,429 | 1,310 | 92% | 119 |
+| 114th | 2015–16 | 1,694 | 1,395 | 82% | 299 |
+| 113th | 2013–14 | 1,753 | 1,060 | 60% | 693 |
+| 112th | 2011–12 | 2,044 | 1,038 | 51% | 1,006 |
+| 111th | 2009–10 | 1,919 | 671 | 35% | 1,248 |
+| **Total** | | **13,024** | **9,512** | **73%** | **3,512** |
 
-## Results
+"Video found" means a video link was discovered from any source: our YouTube matching pipeline, the Congress.gov committee-meeting API, or both. Of the 9,512, our pipeline matched 9,171 to YouTube (7,690 high confidence, 1,481 lower-confidence best guesses for manual review); the remaining 341 have a Congress.gov API video link but no YouTube match. "No video" means no video link was found from any source.
 
-Across the 111th–119th Congresses (2009–present):
+### YouTube match rate by committee
 
-- **13,024 hearings** processed across 20+ committees
-- **3,920 matched** to YouTube videos at high confidence (score >= 0.70)
+Match rates vary widely — some committees post full hearings reliably, others post clips or nothing. (These are pipeline-to-YouTube match rates; a few unmatched hearings still have a Congress.gov API video link.)
 
-| Congress | Years | Hearings | Matched | Rate |
-|---|---|---|---|---|
-| 119th | 2025–26 | 370 | 222 | 60.0% |
-| 118th | 2023–24 | 1,301 | 808 | 62.1% |
-| 117th | 2021–22 | 1,139 | 816 | 71.6% |
-| 116th | 2019–20 | 1,375 | 896 | 65.2% |
-| 115th | 2017–18 | 1,429 | 492 | 34.4% |
-| 114th | 2015–16 | 1,694 | 388 | 22.9% |
-| 113th | 2013–14 | 1,753 | 173 | 9.9% |
-| 112th | 2011–12 | 2,044 | 63 | 3.1% |
-| 111th | 2009–10 | 1,919 | 62 | 3.2% |
+| Committee | Hearings | Matched | Match rate |
+|---|---|---|---|
+| Oversight & Gov Reform | 1,229 | 1,169 | 95% |
+| Energy & Commerce | 1,185 | 1,153 | 97% |
+| Small Business | 643 | 570 | 89% |
+| Education & Workforce | 531 | 432 | 81% |
+| Foreign Affairs | 1,279 | 980 | 77% |
+| Homeland Security | 720 | 556 | 77% |
+| Science, Space & Technology | 679 | 521 | 77% |
+| Financial Services | 999 | 725 | 73% |
+| Natural Resources | 634 | 412 | 65% |
+| Judiciary | 942 | 542 | 58% |
+| Veterans' Affairs | 603 | 308 | 51% |
+| Transportation & Infrastructure | 660 | 323 | 49% |
+| Armed Services | 1,007 | 449 | 45% |
+| Appropriations | 449 | 193 | 43% |
 
-Match rates are highest for recent congresses where committees have established consistent YouTube publishing practices.
+## What this project produces
 
-The output is a CSV crosswalk file linking each matched hearing to its YouTube video, with confidence scores and match methods. A [sample CSV](data/output/sample_matches.csv) is included in the repository.
+1. **A coverage report** — per-hearing data on whether video exists, from which source, and where the gaps are
+2. **A crosswalk** — 7,690 high-confidence hearing-to-YouTube links, plus 1,481 lower-confidence matches flagged for manual review
+3. **Net-new links** — thousands of links to YouTube videos that Congress.gov doesn't currently have
+
+### How "net new" is verified
+
+We cross-reference every match against the Congress.gov committee-meeting API, which sometimes already has YouTube links. Hearings are checked both by eventID and by jacket number (via the full meeting list endpoint). A match is "net new" only if the API has no video for that hearing through either lookup.
 
 ## Examples
 
-The matching algorithm handles real-world messiness in how hearings and videos are titled. Here are actual matches from the crosswalk, illustrating what each layer catches:
+The matching algorithm handles real-world messiness in how hearings and videos are titled:
 
-**Exact eventID** (confidence: 1.0) — The rare ideal case, where Congress.gov provides a direct link:
+**Fuzzy title match** (confidence: 0.89) — A typo on Congress.gov ("ADMINSTRATION") would break an exact match, but fuzzy matching catches it:
 
-> [Hearing](https://congress.gov/115/chrg/CHRG-115hhrg24726/generated/CHRG-115hhrg24726.htm): *SECTION 702 OF THE FOREIGN INTELLIGENCE SURVEILLANCE ACT*
-> [Video](https://www.youtube.com/watch?v=5yriRmNvsXc): *Section 702 of the Foreign Intelligence Surveillance Act EventID=105619*
-
-**Exact title after normalization** (confidence: 0.95) — Titles differ only in casing and prefixes, which normalization strips away:
-
-> [Hearing](https://congress.gov/119/chrg/CHRG-119hhrg61954/generated/CHRG-119hhrg61954.htm): *USDA'S RURAL DEVELOPMENT: DELIVERING VITAL PROGRAMS AND SERVICES TO RURAL AMERICA*
-> [Video](https://www.youtube.com/watch?v=j4qNJL4c8zs): *USDA's Rural Development: Delivering Vital Programs and Services to Rural America*
-
-**Fuzzy title match** (confidence: 0.89) — A typo on Congress.gov ("ADMINSTRATION") that would break an exact match but fuzzy matching catches:
-
-> [Hearing](https://congress.gov/117/chrg/CHRG-117hhrg46573/generated/CHRG-117hhrg46573.htm): *THE BIDEN ADMINSTRATION'S EFFORTS TO DEEPEN U.S. ENGAGEMENT IN THE CARIBBEAN*
+> [Hearing](https://www.congress.gov/event/117th-congress/house-event/LC67774/text): *THE BIDEN ADMINSTRATION'S EFFORTS TO DEEPEN U.S. ENGAGEMENT IN THE CARIBBEAN*
 > [Video](https://www.youtube.com/watch?v=zgsQHLIH4wE): *The Biden Administration's Efforts to Deepen U.S. Engagement in the Caribbean*
 
-**Fuzzy title match** (confidence: 0.89) — Spelling variation ("Combating" vs. "Combatting"):
+**Exact title match** (confidence: 0.95) — Title normalization strips casing and prefix differences:
 
-> [Hearing](https://congress.gov/118/chrg/CHRG-118hhrg51256/generated/CHRG-118hhrg51256.htm): *COMBATING THE GENERATIONAL CHALLENGE OF CCP AGGRESSION*
-> [Video](https://www.youtube.com/watch?v=GQ3KslanAEs): *Combatting the Generational Challenge of CCP Aggression*
+> [Hearing](https://www.congress.gov/event/119th-congress/house-event/118171): *ASSURING ABUNDANT, RELIABLE AMERICAN ENERGY TO POWER INNOVATION*
+> [Video](https://www.youtube.com/watch?v=tj2UUucNc50): *Hearing on Assuring Abundant, Reliable American Energy to Power Innovation*
 
-**Substring match** (confidence: 0.85) — YouTube truncates the long official title and adds a prefix:
+**Substring match** (confidence: 0.88) — YouTube truncates the long official title and adds a prefix:
 
-> [Hearing](https://congress.gov/119/chrg/CHRG-119hhrg60119/generated/CHRG-119hhrg60119.htm): *AGING TECHNOLOGY, EMERGING THREATS: EXAMINING CYBERSECURITY VULNERABILITIES IN LEGACY MEDICAL DEVICES*
-> [Video](https://www.youtube.com/watch?v=PCvyk6l5Wa0): *Hearing on Examining Cybersecurity Vulnerabilities in Legacy Medical Devices*
-
-53% of all matches in the crosswalk have **no eventID** — meaning they would not be discoverable through Congress.gov's built-in links.
+> [Hearing](https://www.congress.gov/event/119th-congress/house-event/LC75252): *WATER RESOURCES DEVELOPMENT ACT OF 2026: STAKEHOLDER PRIORITIES*
+> [Video](https://www.youtube.com/watch?v=n7xQ38K7Axc): *Subcommittee Hearing on "Water Resources Development Act of 2026: Stakeholder Priorities"*
 
 ## How it works
 
-The pipeline fetches hearing metadata from Congress.gov and video metadata from YouTube, then applies six matching strategies — from exact ID lookup down to fuzzy title matching and bill-number extraction. Each strategy produces a confidence score. Post-processing filters out implausible matches and resolves duplicates.
+The pipeline fetches hearing metadata from Congress.gov and video metadata from 45 YouTube channels across 28 committees, then applies thirteen matching strategies — from direct API video links through fuzzy title matching, token-set matching, bill-number extraction, date+description keyword disambiguation, and same-committee/same-date fallback matching. Committee codes are cross-referenced between the hearing API and the committee-meeting API to catch data quality issues. Each strategy produces a confidence score. Post-processing filters out implausible matches and resolves duplicates. Lower-confidence matches (below 0.70) are included in `all_matches.csv` for manual review but excluded from the primary crosswalk.
 
 For a deeper explanation, see [Matching Methodology](docs/matching_methodology.md).
 
@@ -83,9 +92,9 @@ This project's documentation follows the [Diataxis](https://diataxis.fr/) framew
 ## Quick reference
 
 ```
-data/output/crosswalk_all.csv          High-confidence matches (>= 0.70)
-data/output/all_matches_all.csv        All hearings, including unmatched
-data/output/validation_report_all.json  Coverage statistics
+data/output/crosswalk.csv           High-confidence matches (>= 0.70)
+data/output/all_matches.csv         All hearings, including low-confidence and unmatched
+data/output/validation_report.json  Coverage statistics and match method breakdown
 ```
 
 ## Changelog

@@ -7,10 +7,41 @@ from src.config import CONFIDENCE_INCLUSION_THRESHOLD, VIDEO_PUBLISH_SANITY_DAYS
 from src.match import parse_date
 
 
-def build_matches_df(matches: list[dict]) -> pl.DataFrame:
-    """Convert match records to a Polars DataFrame."""
+def build_matches_df(
+    matches: list[dict],
+    meeting_videos: dict[str, list[str]] | None = None,
+    jacket_videos: dict[str, list[str]] | None = None,
+) -> pl.DataFrame:
+    """Convert match records to a Polars DataFrame.
+
+    If meeting_videos is provided, adds ``api_has_video`` and ``net_new``
+    columns classifying each hearing.
+
+    If jacket_videos is provided, hearings without an eventID can still
+    be checked via their jacket number (discovered from the full
+    committee-meeting list endpoint).
+    """
     rows = []
     for m in matches:
+        event_id = m.get("event_id")
+        jacket = m.get("jacket_number", "")
+        has_match = bool(m.get("youtube_video_id"))
+
+        # Classify against the committee-meeting API, tracking source
+        api_has_video = False
+        api_video_source = "unchecked"
+        if meeting_videos and event_id:
+            if meeting_videos.get(str(event_id)):
+                api_has_video = True
+                api_video_source = "event_id"
+        if not api_has_video and jacket_videos and jacket:
+            if jacket_videos.get(str(jacket)):
+                api_has_video = True
+                api_video_source = "jacket"
+
+        # A match is "net new" if we found a video but the API doesn't have one
+        net_new = has_match and not api_has_video
+
         rows.append(
             {
                 "congress": m.get("congress"),
@@ -29,6 +60,13 @@ def build_matches_df(matches: list[dict]) -> pl.DataFrame:
                 "match_confidence": m.get("match_confidence", 0.0),
                 "match_method": m.get("match_method", "no_match"),
                 "event_id": m.get("event_id"),
+                "loc_id": m.get("loc_id"),
+                "api_has_video": api_has_video,
+                "api_video_source": api_video_source,
+                "net_new": net_new,
+                "committee_code_discrepancy": m.get(
+                    "committee_code_discrepancy", False
+                ),
             }
         )
 
@@ -45,6 +83,11 @@ def build_matches_df(matches: list[dict]) -> pl.DataFrame:
         "match_confidence": pl.Float64,
         "match_method": pl.Utf8,
         "event_id": pl.Utf8,
+        "loc_id": pl.Utf8,
+        "api_has_video": pl.Boolean,
+        "api_video_source": pl.Utf8,
+        "net_new": pl.Boolean,
+        "committee_code_discrepancy": pl.Boolean,
     }
     return pl.DataFrame(rows, schema=schema)
 
@@ -159,6 +202,65 @@ def check_duplicate_matches(df: pl.DataFrame) -> pl.DataFrame:
     return duplicates
 
 
+def classify_matches_vs_api(df: pl.DataFrame) -> dict:
+    """Classify matches into categories based on API video availability.
+
+    Categories (based on api_has_video, which can be set via eventID
+    lookup OR jacket-number lookup from the full meeting list):
+
+      A: Our match + API already has the video (not net new)
+      B: Our match + API does NOT have the video (genuinely net new)
+      C: No pipeline match + API has the video (we're missing something)
+      D: Neither pipeline nor API has a video (true gap)
+
+    Hearings are "checked" if we could verify them against the API
+    (either via eventID or via jacket-number in the meeting list).
+    "Unchecked" hearings had no way to verify.
+    """
+    has_match = pl.col("match_confidence") > 0
+    api_has = pl.col("api_has_video") == True  # noqa: E712
+
+    # All hearings, regardless of how api_has_video was determined
+    cat_a = df.filter(has_match & api_has).height
+    cat_b = df.filter(has_match & ~api_has).height
+    cat_c = df.filter(~has_match & api_has).height
+    cat_d = df.filter(~has_match & ~api_has).height
+
+    # Break out by eventID presence for backward-compatible reporting
+    has_event_id = df.filter(pl.col("event_id").is_not_null())
+    no_event_id = df.filter(pl.col("event_id").is_null())
+
+    # "Checked" = api_has_video could have been set (has eventID,
+    # or jacket was found in meeting list — proxied by api_has_video
+    # being True for any no-eventID hearing)
+    no_eid_checked_via_api = no_event_id.filter(api_has).height
+    no_eid_matched = no_event_id.filter(has_match).height
+    no_eid_unmatched = no_event_id.filter(~has_match).height
+
+    return {
+        "with_event_id": {
+            "total": has_event_id.height,
+            "cat_a_match_and_api": has_event_id.filter(has_match & api_has).height,
+            "cat_b_match_no_api": has_event_id.filter(has_match & ~api_has).height,
+            "cat_c_no_match_has_api": has_event_id.filter(~has_match & api_has).height,
+            "cat_d_no_match_no_api": has_event_id.filter(~has_match & ~api_has).height,
+        },
+        "without_event_id": {
+            "total": no_event_id.height,
+            "checked_via_jacket": no_eid_checked_via_api,
+            "matched": no_eid_matched,
+            "unmatched": no_eid_unmatched,
+        },
+        "all_hearings": {
+            "cat_a_match_and_api": cat_a,
+            "cat_b_match_no_api": cat_b,
+            "cat_c_no_match_has_api": cat_c,
+            "cat_d_no_match_no_api": cat_d,
+        },
+        "net_new_total": cat_b,
+    }
+
+
 def print_coverage_report(report: dict) -> None:
     """Print a formatted coverage report."""
     print("=" * 60)
@@ -178,4 +280,28 @@ def print_coverage_report(report: dict) -> None:
             f"  {c['committee_code']:10s} total={c['total']:4d}  "
             f"matched={c['matched']:4d}  high_conf={c['high_confidence']:4d}"
         )
+    print("=" * 60)
+
+
+def print_api_classification(classification: dict) -> None:
+    """Print the API classification report."""
+    all_h = classification["all_hearings"]
+    total = sum(all_h.values())
+
+    print("=" * 60)
+    print("API CLASSIFICATION REPORT")
+    print("=" * 60)
+    print(f"\nAll {total} hearings:")
+    print(f"  A) Match + API has video:  {all_h['cat_a_match_and_api']:5d}  (not net new)")
+    print(f"  B) Match + no API video:   {all_h['cat_b_match_no_api']:5d}  (net new)")
+    print(f"  C) No match + API video:   {all_h['cat_c_no_match_has_api']:5d}  (pipeline gap)")
+    print(f"  D) No match + no API:      {all_h['cat_d_no_match_no_api']:5d}  (true gap)")
+
+    eid = classification["with_event_id"]
+    no_eid = classification["without_event_id"]
+    print("\n  Breakdown by eventID presence:")
+    print(f"    With eventID:    {eid['total']:5d}")
+    print(f"    Without eventID: {no_eid['total']:5d} "
+          f"({no_eid.get('checked_via_jacket', 0)} checked via jacket)")
+    print(f"\n  Net new total: {classification['net_new_total']}")
     print("=" * 60)

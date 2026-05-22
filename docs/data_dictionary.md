@@ -20,22 +20,32 @@ The primary output file containing high-confidence matches (>= 0.70) between Hou
 | `match_confidence` | float | Confidence score from 0.0 to 1.0 |
 | `match_method` | string | Which matching layer produced the match (see below) |
 | `event_id` | string/null | Congress.gov eventID, if available |
+| `loc_id` | string/null | Library of Congress identifier for the hearing, if available |
+| `api_has_video` | boolean | Whether the Congress.gov committee-meeting API already has a video link for this hearing |
+| `net_new` | boolean | True if the pipeline found a video but the Congress.gov API does not have it |
 | `govinfo_id` | string/null | GovInfo CHRG package ID, if available |
 
 ## Match Methods
 
 | Method | Description | Confidence Range |
 |--------|-------------|-----------------|
+| `api_video_direct` | YouTube link from Congress.gov committee-meeting API | 1.0 |
 | `event_id_exact` | Exact eventID found in video metadata | 1.0 |
 | `exact_date_title` | Normalized titles match exactly, date within ±1 day | 0.95 |
 | `fuzzy_title_exact_date` | Fuzzy title match (>=80%), date within ±1 day | 0.70-0.90 |
 | `substring_nearby_date` | One title contains the other, date within ±1 day | 0.80-0.88 |
+| `date_committee_unique` | Only one video for this committee on this date | 0.85 |
+| `date_description_keywords` | Same date, keyword overlap in video description disambiguates | 0.75-0.85 |
+| `token_set_nearby_date` | Short title keywords found in longer video title, date within ±1 day | 0.55-0.68 |
+| `date_description_keywords_relaxed` | Same date, relaxed keyword overlap thresholds | 0.45-0.60 |
 | `fuzzy_title_relaxed_date` | Fuzzy title match, date within ±3 days | 0.50-0.75 |
 | `description_bills` | Shared bill numbers in title/description | 0.40-0.65 |
+| `date_committee_only_single` | Only one video for this committee within ±2 days, no title match | 0.30 |
+| `date_committee_only_best_guess` | Best guess among multiple same-committee/same-date videos | 0.20-0.30 |
 
 ## all_matches.csv
 
-Same schema as `crosswalk.csv` but includes all hearings, including those with no match (`match_confidence` = 0.0, `match_method` = `no_match`). Useful for investigating unmatched hearings or analyzing the full hearing universe.
+Identical columns to `crosswalk.csv`, but includes every hearing — those with no match (`match_confidence` = 0.0, `match_method` = `no_match`) and low-confidence matches (below 0.70) that need manual review. Useful for investigating unmatched hearings or analyzing the full hearing universe.
 
 Additional `match_method` values in this file:
 - `no_match`: No matching video found

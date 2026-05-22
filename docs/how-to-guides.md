@@ -28,13 +28,14 @@ Each match has a `match_confidence` score and a `match_method`. Use these togeth
 
 | Confidence | Meaning |
 |---|---|
-| **1.0** | Exact eventID match — essentially ground truth |
+| **1.0** | Exact eventID match or direct API video link — essentially ground truth |
 | **0.90–0.95** | Titles match exactly or nearly exactly, dates align |
 | **0.70–0.89** | Fuzzy title match with close dates — high confidence |
-| **0.50–0.69** | Weaker signal (relaxed dates or bill-number matching) — excluded from `crosswalk.csv` |
-| **< 0.50** | Low confidence — excluded from `crosswalk.csv` |
+| **0.55–0.69** | Weaker signal (token-set matching, relaxed dates, bill numbers) — needs review |
+| **0.30–0.54** | Low confidence (relaxed keywords, date-only matching) — needs review |
+| **0.20–0.30** | Best guess (same committee + same date, no title match) — needs review |
 
-Only matches scoring >= 0.70 appear in `crosswalk.csv`. All matches (including low-confidence and unmatched hearings) are in `all_matches.csv`.
+Only matches scoring >= 0.70 appear in `crosswalk.csv`. All matches (including low-confidence and unmatched hearings) are in `all_matches.csv`. Lower-confidence matches are valuable for manual review — they flag potential matches that the algorithm can't confirm automatically.
 
 ## Investigate unmatched hearings
 

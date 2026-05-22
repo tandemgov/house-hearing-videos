@@ -51,9 +51,9 @@ The script prints progress as it runs. Expect the initial fetch to take several 
 Once the pipeline completes, you'll find three output files:
 
 ```
-data/output/crosswalk.csv              High-confidence matches
-data/output/all_matches.csv            All hearings (including unmatched)
-data/output/validation_report_all.json Coverage statistics
+data/output/crosswalk.csv           High-confidence matches (>= 0.70)
+data/output/all_matches.csv         All hearings (including low-confidence and unmatched)
+data/output/validation_report.json  Coverage statistics
 ```
 
 Open `crosswalk.csv` to see matched hearings. Each row links a hearing to a YouTube video:
@@ -77,6 +77,7 @@ uv run python scripts/02_fetch_videos.py      # Fetch YouTube video metadata
 uv run python scripts/03_match.py             # Run matching algorithm
 uv run python scripts/04_validate.py          # Validate and report
 uv run python scripts/05_export.py            # Export to CSV
+uv run python scripts/06_fetch_meetings.py    # Fetch committee-meeting API data (net-new check)
 ```
 
 This is useful for debugging or re-running a single step after changing parameters.
