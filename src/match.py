@@ -186,14 +186,31 @@ def committee_matches(hearing: dict, video: dict, committee_map: dict) -> bool:
 
 
 def match_layer_1_event_id(hearing: dict, video: dict) -> dict | None:
-    """Layer 1: Exact eventID match. Confidence 1.0."""
+    """Layer 1: Exact eventID match. Confidence 1.0.
+
+    An explicit ``EventID=<id>`` label is deliberate committee tagging and
+    is trusted even on archive uploads published long after the hearing.
+    A bare digit-bounded occurrence of the ID can collide with dates or
+    archive file identifiers in descriptions (e.g. ``hrs04IR2172_110119``
+    contains a YYMMDD fragment that looks like a 6-digit eventID), so it
+    additionally requires the video date to pass the date sanity window.
+    """
     event_id = hearing.get("event_id")
     if not event_id:
         return None
 
-    # Check if eventID appears in video description or title
+    eid = re.escape(str(event_id))
     video_text = f"{video.get('title', '')} {video.get('description', '')}"
-    if str(event_id) in video_text:
+
+    if re.search(rf"event\s*id\s*=\s*{eid}(?!\d)", video_text, re.IGNORECASE):
+        return {
+            "confidence": 1.0,
+            "method": "event_id_exact",
+        }
+
+    if re.search(rf"(?<!\d){eid}(?!\d)", video_text) and _passes_date_sanity(
+        hearing, video
+    ):
         return {
             "confidence": 1.0,
             "method": "event_id_exact",

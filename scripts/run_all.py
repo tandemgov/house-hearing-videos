@@ -35,8 +35,10 @@ from src.validate import (
     build_matches_df,
     classify_matches_vs_api,
     coverage_report,
+    ground_truth_precision,
     print_api_classification,
     print_coverage_report,
+    print_ground_truth_precision,
 )
 
 
@@ -74,6 +76,7 @@ def main():
     all_dfs: list[pl.DataFrame] = []
     congress_results: dict[int, dict] = {}
     all_meeting_videos: dict[str, list[str]] = {}
+    all_jacket_videos: dict[str, list[str]] = {}
 
     for congress in range(args.max_congress, args.min_congress - 1, -1):
         print(f"\n{'=' * 60}")
@@ -126,6 +129,7 @@ def main():
             jacket_videos = {
                 k: v["video_ids"] for k, v in jacket_meeting_map.items()
             }
+            all_jacket_videos.update(jacket_videos)
             jv_with_video = sum(1 for v in jacket_videos.values() if v)
             print(
                 f"  Jacket->video map: {len(jacket_videos)} jackets, "
@@ -192,6 +196,13 @@ def main():
     api_classification = classify_matches_vs_api(combined)
     print_api_classification(api_classification)
 
+    # Ground-truth precision: where the API itself links a video, did we
+    # pick the same one?
+    precision = ground_truth_precision(
+        combined, all_meeting_videos, all_jacket_videos
+    )
+    print_ground_truth_precision(precision)
+
     # Export combined CSVs
     crosswalk_path = export_crosswalk(combined)
     all_path = export_all_matches(combined)
@@ -200,6 +211,7 @@ def main():
     combined_validation = {
         "overall": combined_report,
         "api_classification": api_classification,
+        "ground_truth_precision": precision,
         "per_congress": {str(c): r for c, r in congress_results.items()},
     }
     report_path = OUTPUT_DIR / "validation_report.json"

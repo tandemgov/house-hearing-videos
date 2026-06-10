@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from src.config import CONFIDENCE_INCLUSION_THRESHOLD, OUTPUT_DIR
+from src.config import OUTPUT_DIR, TRUSTED_MATCH_METHODS
 
 OUTPUT_COLUMNS = [
     "congress",
@@ -27,12 +27,15 @@ OUTPUT_COLUMNS = [
 def export_crosswalk(
     df: pl.DataFrame,
     *,
-    min_confidence: float = CONFIDENCE_INCLUSION_THRESHOLD,
+    trusted_methods: tuple[str, ...] = TRUSTED_MATCH_METHODS,
     output_path: str | None = None,
 ) -> str:
-    """Export the crosswalk CSV, filtering to matches above the confidence threshold.
+    """Export the crosswalk CSV, filtering to matches from trusted methods.
 
-    Returns the path to the written file.
+    Trust is based on measured precision against the committee-meeting
+    API's own video links, not on the hand-assigned confidence score
+    (see TRUSTED_MATCH_METHODS in config). Returns the path to the
+    written file.
     """
     if output_path is None:
         output_path = str(OUTPUT_DIR / "crosswalk.csv")
@@ -41,8 +44,8 @@ def export_crosswalk(
     if "govinfo_id" not in df.columns:
         df = df.with_columns(pl.lit(None).alias("govinfo_id").cast(pl.Utf8))
 
-    # Filter to confident matches
-    filtered = df.filter(pl.col("match_confidence") >= min_confidence)
+    # Filter to matches from methods with measured-high precision
+    filtered = df.filter(pl.col("match_method").is_in(list(trusted_methods)))
 
     # Select and order columns (only those that exist)
     available = [c for c in OUTPUT_COLUMNS if c in filtered.columns]

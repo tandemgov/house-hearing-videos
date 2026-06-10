@@ -39,12 +39,29 @@ YOUTUBE_MAX_RESULTS = 50  # max per page
 
 # Matching thresholds
 FUZZY_TITLE_THRESHOLD = 80  # token-sort-ratio percentage
+ALT_UPLOAD_TITLE_RATIO = 80  # token-set-ratio above which a ground-truth
+# disagreement is classed as an alternate upload of the same hearing
 DATE_WINDOW_DAYS = 3
 CONFIDENCE_INCLUSION_THRESHOLD = 0.70
 VIDEO_PUBLISH_SANITY_DAYS = 30
 TOKEN_SET_MIN_TITLE_LENGTH = 10  # min normalized title length for token-set layer
 TOKEN_SET_THRESHOLD = 85  # token-set-ratio percentage
 FALLBACK_DATE_WINDOW_DAYS = 2  # +-days for fallback layers
+
+# Methods admitted to crosswalk.csv. Gated on *measured* precision against
+# the committee-meeting API's own video links (scripts/measure_precision.py):
+# each method below measured >= 95% lenient precision on >= 50 labeled
+# matches. Methods that fail the bar (date/keyword fallbacks, bill-number
+# matching) stay in all_matches.csv as a manual-review queue regardless of
+# their assigned confidence score.
+TRUSTED_MATCH_METHODS = (
+    "api_video_direct",
+    "event_id_exact",
+    "exact_date_title",
+    "fuzzy_title_exact_date",
+    "substring_nearby_date",
+    "token_set_nearby_date",
+)
 
 # Committee data source
 COMMITTEES_YAML_URL = (

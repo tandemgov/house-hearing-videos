@@ -35,7 +35,7 @@ Each match has a `match_confidence` score and a `match_method`. Use these togeth
 | **0.30–0.54** | Low confidence (relaxed keywords, date-only matching) — needs review |
 | **0.20–0.30** | Best guess (same committee + same date, no title match) — needs review |
 
-Only matches scoring >= 0.70 appear in `crosswalk.csv`. All matches (including low-confidence and unmatched hearings) are in `all_matches.csv`. Lower-confidence matches are valuable for manual review — they flag potential matches that the algorithm can't confirm automatically.
+Note that `crosswalk.csv` membership is determined by `match_method`, not by the confidence score: only methods that measured ≥ 95% precision against the committee-meeting API's own video links are included (`TRUSTED_MATCH_METHODS` in `src/config.py`; see [Matching Methodology](matching_methodology.md#measured-precision)). All matches — including the review queue and unmatched hearings — are in `all_matches.csv`. Review-queue matches are valuable for manual review: they flag potential matches that the algorithm can't confirm automatically.
 
 ## Investigate unmatched hearings
 

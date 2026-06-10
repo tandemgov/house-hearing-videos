@@ -51,9 +51,9 @@ The script prints progress as it runs. Expect the initial fetch to take several 
 Once the pipeline completes, you'll find three output files:
 
 ```
-data/output/crosswalk.csv           High-confidence matches (>= 0.70)
-data/output/all_matches.csv         All hearings (including low-confidence and unmatched)
-data/output/validation_report.json  Coverage statistics
+data/output/crosswalk.csv           Matches from methods with measured precision >= 95%
+data/output/all_matches.csv         All hearings (including the review queue and unmatched)
+data/output/validation_report.json  Coverage statistics and measured precision
 ```
 
 Open `crosswalk.csv` to see matched hearings. Each row links a hearing to a YouTube video:
@@ -62,7 +62,7 @@ Open `crosswalk.csv` to see matched hearings. Each row links a hearing to a YouT
 |---|---|
 | `hearing_title` | The official hearing title from Congress.gov |
 | `youtube_url` | Direct link to the YouTube video |
-| `match_confidence` | How confident the algorithm is in this match (0.70–1.0) |
+| `match_confidence` | The algorithm's assigned confidence score (kept for context; crosswalk inclusion is by method) |
 | `match_method` | Which matching strategy produced this result |
 
 For the full column list, see the [Data Dictionary](data_dictionary.md).

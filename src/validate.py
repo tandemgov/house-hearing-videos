@@ -2,8 +2,13 @@
 
 
 import polars as pl
+from thefuzz import fuzz
 
-from src.config import CONFIDENCE_INCLUSION_THRESHOLD, VIDEO_PUBLISH_SANITY_DAYS
+from src.config import (
+    ALT_UPLOAD_TITLE_RATIO,
+    CONFIDENCE_INCLUSION_THRESHOLD,
+    VIDEO_PUBLISH_SANITY_DAYS,
+)
 from src.match import parse_date
 
 
@@ -131,11 +136,13 @@ def coverage_report(df: pl.DataFrame) -> dict:
     }
 
 
-def benchmark_event_id_accuracy(df: pl.DataFrame) -> dict:
-    """Benchmark matching accuracy using hearings with known eventIDs as ground truth.
+def benchmark_event_id_recall(df: pl.DataFrame) -> dict:
+    """Report match *recall* for hearings that have an eventID.
 
-    For hearings that have an eventID, check whether the matching algorithm
-    found the correct video (the one containing that eventID).
+    This only measures how many eventID hearings got a match by any
+    method — it says nothing about whether the matched video is the
+    right one. For correctness, see ``ground_truth_precision``, which
+    checks matches against the API's own video links.
     """
     with_event_id = df.filter(pl.col("event_id").is_not_null())
     total = with_event_id.height
@@ -144,18 +151,124 @@ def benchmark_event_id_accuracy(df: pl.DataFrame) -> dict:
         return {"total_with_event_id": 0, "message": "No hearings with eventID found"}
 
     matched = with_event_id.filter(pl.col("match_confidence") > 0).height
-    correct_method = with_event_id.filter(
+    via_event_id = with_event_id.filter(
         pl.col("match_method") == "event_id_exact"
     ).height
 
     return {
         "total_with_event_id": total,
         "matched": matched,
-        "matched_via_event_id": correct_method,
-        "matched_via_other": matched - correct_method,
+        "matched_via_event_id": via_event_id,
+        "matched_via_other": matched - via_event_id,
         "unmatched": total - matched,
-        "accuracy": round(matched / total * 100, 1) if total > 0 else 0,
+        "recall": round(matched / total * 100, 1) if total > 0 else 0,
     }
+
+
+def ground_truth_precision(
+    df: pl.DataFrame,
+    meeting_videos: dict[str, list[str]] | None = None,
+    jacket_videos: dict[str, list[str]] | None = None,
+) -> dict:
+    """Measure match precision against video links in the committee-meeting API.
+
+    For each matched hearing where the API itself links one or more YouTube
+    videos (via eventID or jacket number), check whether the pipeline picked
+    one of those videos. Disagreements are split by title similarity:
+
+      agree         pipeline video is one the API links
+      alt_upload    different video, but its title still matches the hearing
+                    (likely another upload of the same proceeding)
+      likely_wrong  different video and the title does not match
+
+    Per method, ``precision_strict`` counts only ``agree``;
+    ``precision_lenient`` also counts ``alt_upload``. The true rate sits
+    between them: alt_upload classification uses the same title-similarity
+    family as the matcher itself, so a member clip titled after the hearing
+    can pass. The labeled subset also skews toward hearings the API covers
+    (newer congresses), so extrapolation to net-new rows is optimistic.
+
+    Rows matched via ``api_video_direct`` (Layer 0) take their video from
+    the answer key itself and agree by construction — read that row as a
+    consistency check, not as evidence of matching quality.
+    """
+    meeting_videos = meeting_videos or {}
+    jacket_videos = jacket_videos or {}
+
+    per_method: dict[str, dict[str, int]] = {}
+    matched_total = 0
+    labeled_total = 0
+    for r in df.iter_rows(named=True):
+        if not r["youtube_video_id"]:
+            continue
+        matched_total += 1
+        truth: set[str] = set()
+        if r["event_id"]:
+            truth.update(meeting_videos.get(str(r["event_id"]), []))
+        if r["jacket_number"]:
+            truth.update(jacket_videos.get(str(r["jacket_number"]), []))
+        if not truth:
+            continue
+        labeled_total += 1
+        counts = per_method.setdefault(
+            r["match_method"], {"agree": 0, "alt_upload": 0, "likely_wrong": 0}
+        )
+        if r["youtube_video_id"] in truth:
+            counts["agree"] += 1
+        else:
+            ratio = fuzz.token_set_ratio(
+                (r["hearing_title"] or "").lower(),
+                (r["video_title"] or "").lower(),
+            )
+            if ratio >= ALT_UPLOAD_TITLE_RATIO:
+                counts["alt_upload"] += 1
+            else:
+                counts["likely_wrong"] += 1
+
+    by_method = []
+    for method, c in sorted(
+        per_method.items(), key=lambda kv: -sum(kv[1].values())
+    ):
+        labeled = sum(c.values())
+        by_method.append(
+            {
+                "match_method": method,
+                "labeled": labeled,
+                **c,
+                "precision_strict": round(c["agree"] / labeled, 3),
+                "precision_lenient": round(
+                    (c["agree"] + c["alt_upload"]) / labeled, 3
+                ),
+            }
+        )
+
+    return {
+        "matched_total": matched_total,
+        "labeled_total": labeled_total,
+        "by_method": by_method,
+    }
+
+
+def print_ground_truth_precision(report: dict) -> None:
+    """Print the ground-truth precision report."""
+    print("=" * 60)
+    print("GROUND-TRUTH PRECISION (vs committee-meeting API videos)")
+    print("=" * 60)
+    print(
+        f"Labeled: {report['labeled_total']} of "
+        f"{report['matched_total']} matched hearings"
+    )
+    print(
+        f"{'method':35s} {'agree':>6s} {'alt':>5s} {'wrong':>6s}"
+        f" {'strict':>7s} {'lenient':>8s}"
+    )
+    for m in report["by_method"]:
+        print(
+            f"{m['match_method']:35s} {m['agree']:6d} {m['alt_upload']:5d}"
+            f" {m['likely_wrong']:6d} {m['precision_strict']:7.1%}"
+            f" {m['precision_lenient']:8.1%}"
+        )
+    print("=" * 60)
 
 
 def sanity_check_dates(matches: list[dict]) -> list[dict]:

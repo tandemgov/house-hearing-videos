@@ -9,17 +9,17 @@ Across the 111th–119th Congresses (2009–present), **27% of House hearings ha
 | Congress | Years | Hearings | Video found | Coverage | No video |
 |---|---|---|---|---|---|
 | 119th | 2025–26 | 370 | 366 | 99% | 4 |
-| 118th | 2023–24 | 1,301 | 1,280 | 98% | 21 |
-| 117th | 2021–22 | 1,139 | 1,068 | 94% | 71 |
-| 116th | 2019–20 | 1,375 | 1,324 | 96% | 51 |
+| 118th | 2023–24 | 1,301 | 1,291 | 99% | 10 |
+| 117th | 2021–22 | 1,139 | 1,072 | 94% | 67 |
+| 116th | 2019–20 | 1,375 | 1,327 | 97% | 48 |
 | 115th | 2017–18 | 1,429 | 1,310 | 92% | 119 |
-| 114th | 2015–16 | 1,694 | 1,395 | 82% | 299 |
-| 113th | 2013–14 | 1,753 | 1,060 | 60% | 693 |
-| 112th | 2011–12 | 2,044 | 1,038 | 51% | 1,006 |
-| 111th | 2009–10 | 1,919 | 671 | 35% | 1,248 |
-| **Total** | | **13,024** | **9,512** | **73%** | **3,512** |
+| 114th | 2015–16 | 1,694 | 1,404 | 83% | 290 |
+| 113th | 2013–14 | 1,753 | 1,046 | 60% | 707 |
+| 112th | 2011–12 | 2,044 | 1,040 | 51% | 1,004 |
+| 111th | 2009–10 | 1,919 | 674 | 35% | 1,245 |
+| **Total** | | **13,024** | **9,530** | **73%** | **3,494** |
 
-"Video found" means a video link was discovered from any source: our YouTube matching pipeline, the Congress.gov committee-meeting API, or both. Of the 9,512, our pipeline matched 9,171 to YouTube (7,690 high confidence, 1,481 lower-confidence best guesses for manual review); the remaining 341 have a Congress.gov API video link but no YouTube match. "No video" means no video link was found from any source.
+"Video found" means a video link was discovered from any source: our YouTube matching pipeline, the Congress.gov committee-meeting API, or both. Of the 9,530, our pipeline matched 9,165 to YouTube (6,913 in the crosswalk via methods with measured precision ≥ 95%, plus 2,252 lower-precision candidates for manual review); the remaining 365 have a Congress.gov API video link but no YouTube match. "No video" means no video link was found from any source.
 
 ### YouTube match rate by committee
 
@@ -27,25 +27,25 @@ Match rates vary widely — some committees post full hearings reliably, others 
 
 | Committee | Hearings | Matched | Match rate |
 |---|---|---|---|
-| Oversight & Gov Reform | 1,229 | 1,169 | 95% |
-| Energy & Commerce | 1,185 | 1,153 | 97% |
-| Small Business | 643 | 570 | 89% |
+| Oversight & Gov Reform | 1,229 | 1,172 | 95% |
+| Energy & Commerce | 1,185 | 1,128 | 95% |
+| Small Business | 643 | 572 | 89% |
 | Education & Workforce | 531 | 432 | 81% |
-| Foreign Affairs | 1,279 | 980 | 77% |
-| Homeland Security | 720 | 556 | 77% |
-| Science, Space & Technology | 679 | 521 | 77% |
-| Financial Services | 999 | 725 | 73% |
-| Natural Resources | 634 | 412 | 65% |
-| Judiciary | 942 | 542 | 58% |
-| Veterans' Affairs | 603 | 308 | 51% |
-| Transportation & Infrastructure | 660 | 323 | 49% |
+| Homeland Security | 720 | 555 | 77% |
+| Science, Space & Technology | 679 | 520 | 77% |
+| Foreign Affairs | 1,279 | 966 | 76% |
+| Financial Services | 999 | 727 | 73% |
+| Natural Resources | 634 | 411 | 65% |
+| Judiciary | 942 | 547 | 58% |
+| Veterans' Affairs | 603 | 316 | 52% |
+| Transportation & Infrastructure | 660 | 322 | 49% |
 | Armed Services | 1,007 | 449 | 45% |
-| Appropriations | 449 | 193 | 43% |
+| Appropriations | 449 | 190 | 42% |
 
 ## What this project produces
 
 1. **A coverage report** — per-hearing data on whether video exists, from which source, and where the gaps are
-2. **A crosswalk** — 7,690 high-confidence hearing-to-YouTube links, plus 1,481 lower-confidence matches flagged for manual review
+2. **A crosswalk** — 6,913 hearing-to-YouTube links from matching methods with measured precision ≥ 95%, plus 2,252 lower-precision candidates flagged for manual review
 3. **Net-new links** — thousands of links to YouTube videos that Congress.gov doesn't currently have
 
 ### How "net new" is verified
@@ -73,7 +73,9 @@ The matching algorithm handles real-world messiness in how hearings and videos a
 
 ## How it works
 
-The pipeline fetches hearing metadata from Congress.gov and video metadata from 45 YouTube channels across 28 committees, then applies thirteen matching strategies — from direct API video links through fuzzy title matching, token-set matching, bill-number extraction, date+description keyword disambiguation, and same-committee/same-date fallback matching. Committee codes are cross-referenced between the hearing API and the committee-meeting API to catch data quality issues. Each strategy produces a confidence score. Post-processing filters out implausible matches and resolves duplicates. Lower-confidence matches (below 0.70) are included in `all_matches.csv` for manual review but excluded from the primary crosswalk.
+The pipeline fetches hearing metadata from Congress.gov and video metadata from 45 YouTube channels across 28 committees, then applies thirteen matching strategies — from direct API video links through fuzzy title matching, token-set matching, bill-number extraction, date+description keyword disambiguation, and same-committee/same-date fallback matching. Committee codes are cross-referenced between the hearing API and the committee-meeting API to catch data quality issues. Post-processing filters out implausible matches and resolves duplicates.
+
+Every run also measures its own precision: where the committee-meeting API links its own video for a matched hearing, the pipeline checks whether it picked the same one. Only methods that measured ≥ 95% precision on that check are admitted to `crosswalk.csv`; matches from lower-precision methods (32–72% measured) are kept in `all_matches.csv` as a manual-review queue.
 
 For a deeper explanation, see [Matching Methodology](docs/matching_methodology.md).
 
@@ -92,9 +94,9 @@ This project's documentation follows the [Diataxis](https://diataxis.fr/) framew
 ## Quick reference
 
 ```
-data/output/crosswalk.csv           High-confidence matches (>= 0.70)
-data/output/all_matches.csv         All hearings, including low-confidence and unmatched
-data/output/validation_report.json  Coverage statistics and match method breakdown
+data/output/crosswalk.csv           Matches from methods with measured precision >= 95%
+data/output/all_matches.csv         All hearings, including the review queue and unmatched
+data/output/validation_report.json  Coverage statistics, method breakdown, measured precision
 ```
 
 ## Changelog

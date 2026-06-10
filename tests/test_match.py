@@ -120,6 +120,46 @@ class TestMatchLayer1:
         video = {"title": "Hearing", "description": "Unrelated video"}
         assert match_layer_1_event_id(hearing, video) is None
 
+    def test_event_id_substring_of_longer_number(self):
+        # eventID 11410 must not match EventID=114100
+        hearing = {"event_id": "11410", "title": "Test"}
+        video = {"title": "Hearing (EventID=114100)", "description": ""}
+        assert match_layer_1_event_id(hearing, video) is None
+
+    def test_explicit_label_trusted_despite_date_gap(self):
+        # Archive upload years after the hearing, but deliberately labeled
+        hearing = {"event_id": "104002", "title": "Test", "dates": ["2015-09-30"]}
+        video = {
+            "title": "Hearing: Kony (EventID=104002)",
+            "description": "",
+            "published_at": "2019-01-01T00:00:00Z",
+        }
+        result = match_layer_1_event_id(hearing, video)
+        assert result is not None
+        assert result["confidence"] == 1.0
+
+    def test_bare_number_requires_date_sanity(self):
+        # 110119 also reads as an archive-filename date fragment; a video
+        # published years away from the hearing must not match on it
+        hearing = {"event_id": "110119", "title": "Test", "dates": ["2019-10-22"]}
+        video = {
+            "title": "Unrelated archive video",
+            "description": "mars-4:hrs04IR2172_110119 - Rayburn 2172",
+            "published_at": "2011-11-23T00:00:00Z",
+        }
+        assert match_layer_1_event_id(hearing, video) is None
+
+    def test_bare_number_with_nearby_date(self):
+        hearing = {"event_id": "110119", "title": "Test", "dates": ["2019-10-22"]}
+        video = {
+            "title": "Hearing video",
+            "description": "Event 110119 coverage",
+            "published_at": "2019-10-23T00:00:00Z",
+        }
+        result = match_layer_1_event_id(hearing, video)
+        assert result is not None
+        assert result["confidence"] == 1.0
+
 
 class TestMatchLayer2:
     def test_exact_match(self):

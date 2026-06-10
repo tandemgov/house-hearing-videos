@@ -6,7 +6,7 @@ import json
 
 from src.config import CANDIDATES_DIR, OUTPUT_DIR, TARGET_CONGRESS
 from src.validate import (
-    benchmark_event_id_accuracy,
+    benchmark_event_id_recall,
     build_matches_df,
     check_duplicate_matches,
     coverage_report,
@@ -37,10 +37,11 @@ def main():
     report = coverage_report(df)
     print_coverage_report(report)
 
-    # Benchmark against known eventIDs
-    print("\nEVENT ID BENCHMARK")
+    # Benchmark against known eventIDs (recall only — see ground_truth_precision
+    # in run_all.py for correctness measurement)
+    print("\nEVENT ID RECALL")
     print("-" * 40)
-    benchmark = benchmark_event_id_accuracy(df)
+    benchmark = benchmark_event_id_recall(df)
     for k, v in benchmark.items():
         print(f"  {k}: {v}")
 

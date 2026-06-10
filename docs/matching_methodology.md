@@ -39,6 +39,11 @@ These steps reflect observed patterns in how Congress.gov titles and YouTube tit
 
 If a hearing has an `associatedMeeting.eventID`, search for that ID in the video's title and description. This is the closest thing to ground truth, but it is rarely available for House hearings — which is the whole reason this project exists.
 
+Two guards keep this from misfiring:
+
+- The ID must be digit-bounded — eventID `11410` does not match a video labeled `EventID=114100`.
+- An explicit `EventID=<id>` label (used by committees like Foreign Affairs on archive uploads) is trusted regardless of upload date. A *bare* occurrence of the number additionally requires the video date to pass the 30-day sanity window, because archive channels embed file identifiers like `hrs04IR2172_110119` in descriptions, and the YYMMDD fragment can collide with a 6-digit eventID. A rejected Layer 1 candidate simply falls through to the title-based layers.
+
 ### Layer 2: Exact title + nearby date (Confidence: 0.95)
 
 Normalized titles must match exactly, and the video's publish date must be within ±1 day of the hearing date.
@@ -67,13 +72,13 @@ Uses `token_set_ratio` from the `thefuzz` library instead of `token_sort_ratio`.
 
 **Why a separate layer?** Some hearings have short, keyword-rich titles (e.g., "THE JFK FILES") while the corresponding video has a much longer descriptive title ("Task Force on the Declassification of Federal Secrets: the JFK Files"). `token_sort_ratio` gives only ~32% for this pair because of the length mismatch, but `token_set_ratio` gives 100% because all tokens from the short title appear in the long one.
 
-**Why below 0.70 confidence?** `token_set_ratio` is generous — common government jargon can cause coincidental overlaps. Keeping confidence below 0.70 ensures these matches appear only in `all_matches.csv` for manual review, not in the primary crosswalk.
+**Why below 0.70 confidence?** `token_set_ratio` is generous — common government jargon can cause coincidental overlaps, so the layer was assigned a cautious confidence. Measured precision turned out to be ~99% (see [Measured precision](#measured-precision)), so this method is included in the crosswalk despite its low assigned confidence — an example of why the crosswalk is gated on measured precision rather than the assigned score.
 
 ### Layer 4: Fuzzy title + relaxed date (Confidence: 0.50–0.75)
 
 Same fuzzy matching as Layer 3, but the date window expands to ±3 days. Confidence factors in both the fuzzy ratio and date distance.
 
-**Why the wider window?** Some committees have inconsistent upload schedules. The trade-off is lower confidence — matches from this layer are excluded from the primary `crosswalk.csv` output.
+**Why the wider window?** Some committees have inconsistent upload schedules. The trade-off is lower reliability — matches from this layer are not in the trusted-method set and stay in `all_matches.csv` for review.
 
 ### Layer 5: Bill numbers (Confidence: 0.40–0.65)
 
@@ -134,17 +139,46 @@ The date window for all fallback modes is ±2 days (wider than the ±1 day used 
 
 When all other layers and fallbacks fail, a final catch-all matches purely by committee and date (±2 days), with no text matching at all. If exactly one video exists for that committee on that date, it matches at 0.30 confidence. If multiple candidates exist, the one with the highest `token_set_ratio` is picked at 0.20–0.30 confidence.
 
-**Why include this?** Some committees use entirely generic video titles (e.g., Rules Committee posts every video as "Rules Committee Hearing H.R. ____"; Natural Resources uses "Legislative Hearing | [Subcommittee Name]") with empty descriptions. Title-based matching is impossible for these. At very low confidence, these matches appear only in `all_matches.csv` for manual review — they never contaminate the primary crosswalk.
+**Why include this?** Some committees use entirely generic video titles (e.g., Rules Committee posts every video as "Rules Committee Hearing H.R. ____"; Natural Resources uses "Legislative Hearing | [Subcommittee Name]") with empty descriptions. Title-based matching is impossible for these. These matches appear only in `all_matches.csv` for manual review — they never enter the primary crosswalk.
+
+## Crosswalk gating: measured precision, not assigned confidence
+
+`crosswalk.csv` admits a match based on which *method* produced it, not on its assigned confidence score. The trusted set (`TRUSTED_MATCH_METHODS` in `src/config.py`) is every method that measured ≥ 95% lenient precision on at least 50 labeled matches in the ground-truth check described below. Everything else — the date/keyword fallbacks and bill-number matching — stays in `all_matches.csv` as a review queue, regardless of its assigned confidence.
+
+## Measured precision
+
+The committee-meeting API's `videos` field links actual YouTube URLs for thousands of meetings. That is an answer key the matcher never sees: for every matched hearing where the API links its own video, we can check whether the pipeline picked the same one. `ground_truth_precision()` in `src/validate.py` runs this on every pipeline run (results land in `validation_report.json`); `scripts/measure_precision.py` runs it standalone from cached data and reports the re-gated crosswalk.
+
+Disagreements are split by title similarity into `alt_upload` (different video, title still matches the hearing — usually another upload of the same proceeding) and `likely_wrong`. Strict precision counts only exact agreement; lenient precision also counts alt-uploads. Measured on the pre-Layer-0 dataset (3,577 labeled matches):
+
+| Method | Assigned confidence | Lenient precision | Labeled n |
+|---|---|---:|---:|
+| exact_date_title | 0.95 | ~100% | 1,017 |
+| fuzzy_title_exact_date | 0.70–0.90 | ~100% | 406 |
+| token_set_nearby_date | 0.55–0.68 | ~99% | 90 |
+| substring_nearby_date | 0.80–0.88 | ~98% | 100 |
+| event_id_exact | 1.0 | ~96% | 1,624 |
+| date_committee_unique | 0.85 | ~72% | 29 |
+| date_description_keywords | 0.75–0.85 | ~64% | 103 |
+| description_bills | 0.40–0.65 | ~63% | 38 |
+| date_committee_only_best_guess | 0.20–0.30 | ~40% | 129 |
+| date_description_keywords_relaxed | 0.45–0.60 | ~32% | 37 |
+
+Three caveats, stated so this table is not over-read:
+
+1. **Lenient precision is an upper bound.** The alt-upload classifier uses the same title-similarity family as the matcher, so a member *clip* titled after the hearing can pass.
+2. **The labeled sample skews easy.** Hearings the API covers are concentrated in newer congresses with better-run channels; the net-new rows skew toward the 111th–114th Congresses, where committee channels posted clips, so true net-new precision is likely somewhat lower per method.
+3. **`api_video_direct` (Layer 0) is circular here** — it takes its video from the answer key, so its row in the report is a consistency check, not evidence.
 
 ## Known limitations
 
 1. **Committees that don't post full hearings**: Several committees (Homeland Security, Ways & Means, Oversight) primarily post clips and opening statements rather than full hearing recordings, resulting in low match rates for those committees.
-2. **No eventID ground truth for benchmarking**: The 118th Congress House hearings have no eventIDs, so there is no authoritative dataset to validate against.
+2. **Ground truth is partial**: precision can only be measured where the committee-meeting API links its own video (see [Measured precision](#measured-precision)). That sample skews toward newer congresses, so measured rates are optimistic for the older net-new matches.
 3. **Multi-part hearings**: Hearings spanning multiple days may match to only one video.
 4. **Title divergence**: Some committees use significantly different titles on YouTube than the official hearing title, which may not be captured by fuzzy matching. A known case is Financial Services, which truncates long titles with "..." on YouTube, causing fuzzy match scores to fall just below the 80% threshold.
 5. **Majority/minority channel split**: The `congress-legislators` YAML may point to a minority-party channel (e.g., House Administration Democrats) rather than the majority channel that hosts full hearings. This causes the pipeline to find only clips, not full recordings.
 6. **Generic video titles**: Some committees (Rules, Natural Resources) use template titles that carry no hearing-specific information. The committee+date fallback handles these, but when multiple hearings occur on the same day, the match is a best guess that requires manual review.
-7. **Low-confidence matches need review**: The aggressive fallback layers (confidence < 0.70) trade precision for recall. These matches appear in `all_matches.csv` but are excluded from the primary crosswalk and should be manually verified before use.
+7. **Review-queue matches need review**: The aggressive fallback layers trade precision for recall — they measured 32–72% precision against the API's own video links. These matches appear in `all_matches.csv` but are excluded from the primary crosswalk and should be manually verified before use. The dominant failure mode is a member's clip from the right committee and day rather than the full hearing.
 8. **Hearings with no committee code**: ~94 hearings come back from the Congress.gov hearing API with an empty `committeeCode`. They can't be scoped to any channel and are therefore unmatchable — a data-quality issue upstream, not a matching failure.
 
 ## Future work
