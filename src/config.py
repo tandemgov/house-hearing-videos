@@ -32,7 +32,7 @@ TARGET_CONGRESS = 118
 MIN_CONGRESS = 111  # 2009-2011, start of YouTube era for committees
 MAX_CONGRESS = 119  # Current congress
 CONGRESS_API_PAGE_SIZE = 250
-CONGRESS_API_RATE_LIMIT = 0.5  # seconds between requests (conservative)
+CONGRESS_API_RATE_LIMIT = 0.75  # seconds between requests; keeps a --force run under 5,000/hour
 
 # YouTube settings
 YOUTUBE_MAX_RESULTS = 50  # max per page

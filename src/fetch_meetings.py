@@ -34,6 +34,11 @@ _YT_VIDEO_RE = re.compile(
 )
 
 
+def _retry_wait(status_code: int, attempt: int) -> int:
+    """Back off; a 429 means the hourly quota is spent, so short waits just burn retries."""
+    return 60 * (attempt + 1) if status_code == 429 else 2 ** (attempt + 1)
+
+
 def _meeting_cache_path(congress: int, event_id: str) -> Path:
     return RAW_MEETINGS_DIR / f"meeting_{congress}_{event_id}.json"
 
@@ -68,11 +73,10 @@ def fetch_meeting(
                 return data
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (429, 500, 502, 503) and attempt < 4:
-                    wait = 2 ** (attempt + 1)
-                    time.sleep(wait)
+                    time.sleep(_retry_wait(e.response.status_code, attempt))
                 else:
                     raise
-            except (httpx.ReadTimeout, httpx.ConnectTimeout):
+            except httpx.TransportError:  # timeouts and dropped connections
                 if attempt < 4:
                     time.sleep(2 ** (attempt + 1))
                 else:
@@ -193,7 +197,7 @@ def _fetch_meeting_list_page(
                 return resp.json()
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (429, 502, 503) and attempt < 4:
-                    time.sleep(2 ** (attempt + 1))
+                    time.sleep(_retry_wait(e.response.status_code, attempt))
                 elif e.response.status_code == 500:
                     if size > 7:
                         print(f"    500 at limit={size}, "
@@ -205,7 +209,7 @@ def _fetch_meeting_list_page(
                         raise
                 else:
                     raise
-            except (httpx.ReadTimeout, httpx.ConnectTimeout):
+            except httpx.TransportError:  # timeouts and dropped connections
                 if attempt < 4:
                     time.sleep(2 ** (attempt + 1))
                 else:

@@ -16,6 +16,7 @@ from src.config import (
     RAW_HEARINGS_DIR,
     TARGET_CONGRESS,
 )
+from src.fetch_meetings import _retry_wait
 from src.match import normalize_title
 
 
@@ -232,17 +233,17 @@ def fetch_all_hearing_details(
                         break
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code in (429, 500, 502, 503) and attempt < 4:
-                            wait = 2 ** (attempt + 1)
+                            wait = _retry_wait(e.response.status_code, attempt)
                             print(f"    Retry {attempt + 1} for {jacket}"
                                   f" ({e.response.status_code}), waiting {wait}s...")
                             time.sleep(wait)
                         else:
                             raise
-                    except (httpx.ReadTimeout, httpx.ConnectTimeout):
+                    except httpx.TransportError:  # timeouts and dropped connections
                         if attempt < 4:
                             wait = 2 ** (attempt + 1)
                             print(f"    Retry {attempt + 1} for {jacket}"
-                                  f" (timeout), waiting {wait}s...")
+                                  f" (connection), waiting {wait}s...")
                             time.sleep(wait)
                         else:
                             raise
