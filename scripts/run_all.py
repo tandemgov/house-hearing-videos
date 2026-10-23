@@ -58,6 +58,10 @@ def main():
         "--force", action="store_true",
         help="Bypass cache and re-fetch all data",
     )
+    parser.add_argument(
+        "--keep-videos", action="store_true",
+        help="With --force, reuse cached YouTube video data and re-fetch only Congress.gov data",
+    )
     args = parser.parse_args()
 
     # Step 1: Fetch videos ONCE (not congress-specific)
@@ -67,7 +71,7 @@ def main():
     committee_map = get_committee_map()
     committees_with_yt = [c for c in committee_map.values() if c.youtube_id]
     videos_by_committee = fetch_all_committee_videos(
-        committees_with_yt, force_refresh=args.force
+        committees_with_yt, force_refresh=args.force and not args.keep_videos
     )
     total_videos = sum(len(v) for v in videos_by_committee.values())
     print(f"Total videos: {total_videos}")
