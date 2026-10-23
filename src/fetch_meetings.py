@@ -39,6 +39,11 @@ def _retry_wait(status_code: int, attempt: int) -> int:
     return 60 * (attempt + 1) if status_code == 429 else 2 ** (attempt + 1)
 
 
+def _transport_retry_wait(attempt: int) -> int:
+    """Congress.gov drops connections in bursts that outlast exponential seconds."""
+    return 15 * (attempt + 1)
+
+
 def _meeting_cache_path(congress: int, event_id: str) -> Path:
     return RAW_MEETINGS_DIR / f"meeting_{congress}_{event_id}.json"
 
@@ -78,7 +83,7 @@ def fetch_meeting(
                     raise
             except httpx.TransportError:  # timeouts and dropped connections
                 if attempt < 4:
-                    time.sleep(2 ** (attempt + 1))
+                    time.sleep(_transport_retry_wait(attempt))
                 else:
                     raise
         return None
@@ -211,7 +216,7 @@ def _fetch_meeting_list_page(
                     raise
             except httpx.TransportError:  # timeouts and dropped connections
                 if attempt < 4:
-                    time.sleep(2 ** (attempt + 1))
+                    time.sleep(_transport_retry_wait(attempt))
                 else:
                     raise
     return None
