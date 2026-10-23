@@ -330,6 +330,7 @@ def build_jacket_meeting_map(
 
     Returns per jacket: video_ids, committee_codes, and event_id from
     the committee-meeting API. Used to cross-reference hearing data.
+    `meetings` keeps every meeting naming the jacket, for title-checked eventID backfill.
     """
     result: dict[str, dict] = {}
     for meeting in meetings:
@@ -337,6 +338,7 @@ def build_jacket_meeting_map(
         video_ids = extract_youtube_video_ids(meeting)
         committee_codes = extract_committee_codes(meeting)
         event_id = str(cm.get("eventId", ""))
+        meeting_ref = {"event_id": event_id, "title": cm.get("title") or ""}
 
         for jacket in extract_jacket_numbers(meeting):
             if jacket not in result:
@@ -344,8 +346,10 @@ def build_jacket_meeting_map(
                     "video_ids": video_ids,
                     "committee_codes": committee_codes,
                     "event_id": event_id,
+                    "meetings": [meeting_ref],
                 }
             else:
+                result[jacket]["meetings"].append(meeting_ref)
                 # Merge video IDs
                 if video_ids:
                     existing = set(result[jacket]["video_ids"])

@@ -47,6 +47,8 @@ VIDEO_PUBLISH_SANITY_DAYS = 30
 TOKEN_SET_MIN_TITLE_LENGTH = 10  # min normalized title length for token-set layer
 TOKEN_SET_THRESHOLD = 85  # token-set-ratio percentage
 FALLBACK_DATE_WINDOW_DAYS = 2  # +-days for fallback layers
+# Below this hearing/meeting title ratio, a borrowed eventID is usually another hearing.
+EVENT_ID_BACKFILL_TITLE_RATIO = 70
 
 # Methods admitted to crosswalk.csv. Gated on *measured* precision against
 # the committee-meeting API's own video links (scripts/measure_precision.py):
