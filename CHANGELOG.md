@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Additional matching layers: token-set, substring, date+description keyword disambiguation, and same-committee/same-date fallbacks (13 methods total)
 - GitHub Actions weekly pipeline run with automated coverage-trend tracking
 - `loc_id` (Library of Congress identifier) column in the output
+- `run_all.py --keep-videos`: with `--force`, refresh Congress.gov data while reusing cached YouTube data
 
 ### Changed
 
@@ -23,6 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `benchmark_event_id_accuracy` renamed to `benchmark_event_id_recall` — it measures how many eventID hearings got any match, not whether the match is correct, and its output key now says so
 - Output files renamed to drop the vestigial `_all` suffix: `crosswalk.csv`, `all_matches.csv`, `validation_report.json`
 - Coverage now spans all 111th–119th hearings with full any-source analysis: 9,512 of 13,024 hearings (73%) have a discoverable video; 7,690 high-confidence YouTube matches in the crosswalk, plus 1,481 lower-confidence matches for review
+
+### Fixed
+
+- Hearings lacking an eventID now borrow one only from a meeting whose title agrees with theirs; meetings often list other same-day hearings' jackets, which matched hearings to the wrong video
+- Substring and token-set layers reject single-member clips ("Opening Statement", "Q&A", "Rep. X questions panel") that were entering the net-new crosswalk
+- Fetches retry dropped connections and back off properly on 429; fetch failures now abort the run instead of skipping a congress's net-new check
 
 ### Removed
 
