@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hearings lacking an eventID now borrow one only from a meeting whose title agrees with theirs; meetings often list other same-day hearings' jackets, which matched hearings to the wrong video
 - Substring and token-set layers reject single-member clips ("Opening Statement", "Q&A", "Rep. X questions panel") that were entering the net-new crosswalk
 - Fetches retry dropped connections and back off properly on 429; fetch failures now abort the run instead of skipping a congress's net-new check
+- Outputs regenerated from Congress.gov data as of 2026-10-24 (YouTube data still March 2026): 13,304 hearings, 7,365 crosswalk rows, 3,527 net-new
 
 ### Removed
 

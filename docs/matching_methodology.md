@@ -66,6 +66,8 @@ Checks if one normalized title is a substring of the other (minimum 15 character
 
 **Why a separate layer?** Some committees prepend or append boilerplate to their YouTube titles. Fuzzy matching penalizes this extra text, but substring matching handles it cleanly.
 
+**Clip guard (3b and 3c).** Because these layers tolerate extra words, they also accept single-member clips titled after the hearing ("Chairman Miller's Opening Statement: …", "Rep. Garamendi questions panel at hearing on …"). Both layers reject a video when the words it adds to the hearing title include a clip marker (opening, closing, statement, remarks, question(s), Q&A, testimony) or a member honorific (Rep., Mr., Ms., Del., RM, Congressman/Congresswoman); see `looks_like_clip()` in `src/match.py`. Words already in the hearing title don't count, so "Questions Regarding the U.S. Census" still matches its own video.
+
 ### Layer 3c: Token-set ratio + nearby date (Confidence: 0.55–0.68)
 
 Uses `token_set_ratio` from the `thefuzz` library instead of `token_sort_ratio`. This metric asks: "are all the words from the shorter title present in the longer one?" It requires a threshold of 85%, both normalized titles to be at least 10 characters, and `token_sort_ratio` to be below 80% (otherwise Layer 3 would already have matched).
@@ -100,7 +102,7 @@ The pipeline cross-references both sources via `enrich_hearing_with_meeting_data
 2. For each hearing, looks up its jacket in the meeting map
 3. Merges committee codes from both sources into `effective_committee_codes`
 4. Flags discrepancies for logging
-5. Fills in missing `event_id` from the meeting map when the hearing API lacks one
+5. Fills in a missing `event_id` from the meeting map only when the meeting title agrees with the hearing title (token-set ratio ≥ 70, `EVENT_ID_BACKFILL_TITLE_RATIO`), choosing the best-agreeing meeting when a jacket appears in several. Meeting records often list the jackets of other same-day hearings, so taking the first meeting that names a jacket pinned some hearings to a different proceeding's video.
 
 Matching uses the merged `effective_committee_codes`, so a hearing miscoded in one API can still match against the correct committee's YouTube videos.
 
