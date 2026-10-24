@@ -11,6 +11,7 @@ from src.match import (
     dates_match_nearby,
     dates_within_window,
     extract_bill_numbers,
+    looks_like_clip,
     match_layer_0_api_video,
     match_layer_1_event_id,
     match_layer_2_exact,
@@ -243,6 +244,53 @@ class TestMatchLayer3bSubstring:
         hearing = {"title": "Short", "dates": ["2024-03-15"]}
         video = {"title": "Short title", "published_at": "2024-03-15T14:00:00Z"}
         assert match_layer_3b_substring(hearing, video) is None
+
+    def test_rejects_member_clip(self):
+        hearing = {
+            "title": "THE WORST PLACES TO WORK IN THE FEDERAL GOVERNMENT",
+            "dates": ["2015-04-16"],
+        }
+        video = {
+            "title": (
+                "Mr. Meadows Opening Statement - "
+                "The Worst Places to Work in the Federal Government"
+            ),
+            "published_at": "2015-04-16T14:00:00Z",
+        }
+        assert match_layer_3b_substring(hearing, video) is None
+
+
+class TestLooksLikeClip:
+    def test_opening_statement(self):
+        assert looks_like_clip(
+            "REPLACING THE SEQUESTER",
+            'Van Hollen Opening Statement at Hearing on "Replacing the Sequester"',
+        )
+
+    def test_member_questions(self):
+        assert looks_like_clip(
+            "INNOVATION IN SURFACE TRANSPORTATION",
+            "Rep. Lawrence questions panel at hearing on Innovation in Surface Transportation",
+        )
+
+    def test_q_and_a(self):
+        assert looks_like_clip(
+            "SOCIAL SECURITY'S FINANCES",
+            "Hearing on Social Security's Finances, Rep. Becerra Q&A",
+        )
+
+    def test_full_hearing_with_part_number(self):
+        assert not looks_like_clip(
+            "SHIFTING SANDS: POLITICAL TRANSITIONS IN THE MIDDLE EAST",
+            "Subcommittee Hearing: Shifting Sands: "
+            "Political Transitions in the Middle East, Part 1",
+        )
+
+    def test_marker_word_in_hearing_title(self):
+        assert not looks_like_clip(
+            "QUESTIONS REGARDING THE U.S. CENSUS",
+            "Questions Regarding the U.S. Census",
+        )
 
 
 class TestMatchLayer4:
@@ -537,6 +585,7 @@ class TestEnrichHearingWithMeetingData:
     def test_fills_event_id(self):
         hearing = {
             "jacket_number": "60494",
+            "title": "WORLD-WIDE THREATS TO THE HOMELAND",
             "committee_codes": ["hlse00"],
             "event_id": None,
         }
@@ -545,10 +594,54 @@ class TestEnrichHearingWithMeetingData:
                 "video_ids": [],
                 "committee_codes": ["hlzs00"],
                 "event_id": "118132",
+                "meetings": [
+                    {"event_id": "118132", "title": "Worldwide Threats to the Homeland"}
+                ],
             }
         }
         result = enrich_hearing_with_meeting_data(hearing, jacket_map)
         assert result["event_id"] == "118132"
+
+    def test_skips_event_id_from_different_same_day_meeting(self):
+        hearing = {
+            "jacket_number": "93081",
+            "title": "FURTHERING ASBESTOS CLAIM TRANSPARENCY (FACT) ACT OF 2015",
+            "committee_codes": ["hsju00"],
+            "event_id": None,
+        }
+        jacket_map = {
+            "93081": {
+                "video_ids": [],
+                "committee_codes": ["hsju00"],
+                "event_id": "102890",
+                "meetings": [
+                    {"event_id": "102890", "title": "H.R. _____, the Legal Workforce Act"}
+                ],
+            }
+        }
+        result = enrich_hearing_with_meeting_data(hearing, jacket_map)
+        assert result["event_id"] is None
+
+    def test_picks_agreeing_meeting_when_jacket_listed_twice(self):
+        hearing = {
+            "jacket_number": "12345",
+            "title": "U.S. POLICY TOWARD MOROCCO",
+            "committee_codes": ["hsfa00"],
+            "event_id": None,
+        }
+        jacket_map = {
+            "12345": {
+                "video_ids": [],
+                "committee_codes": ["hsfa00"],
+                "event_id": "102112",
+                "meetings": [
+                    {"event_id": "102112", "title": "U.S. Foreign Assistance in FY 2015"},
+                    {"event_id": "102113", "title": "U.S. Policy Toward Morocco"},
+                ],
+            }
+        }
+        result = enrich_hearing_with_meeting_data(hearing, jacket_map)
+        assert result["event_id"] == "102113"
 
     def test_no_meeting_data(self):
         hearing = {

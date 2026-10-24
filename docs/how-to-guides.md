@@ -22,6 +22,16 @@ uv run python scripts/run_all.py --force
 
 This is useful after upstream data changes on Congress.gov or YouTube.
 
+A full refresh makes about 25,000 Congress.gov requests and takes 5–6 hours: requests are spaced 0.75s apart to stay under the API's 5,000/hour limit.
+To refresh Congress.gov data but keep the cached YouTube data (for example, when the YouTube key is unavailable), add `--keep-videos`:
+
+```bash
+uv run python scripts/run_all.py --force --keep-videos
+```
+
+A fetch that still fails after retries stops the run rather than skipping a congress, since a skipped congress would make its hearings look net-new.
+Because `--force` re-fetches everything, resume an interrupted refresh without it: move the pre-refresh files out of `data/raw/hearings/` and `data/raw/meetings/` first, then run `uv run python scripts/run_all.py`, which fetches only what is missing.
+
 ## Interpret match confidence scores
 
 Each match has a `match_confidence` score and a `match_method`. Use these together to assess reliability:

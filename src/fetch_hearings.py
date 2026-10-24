@@ -5,15 +5,19 @@ import time
 from pathlib import Path
 
 import httpx
+from thefuzz import fuzz
 
 from src.config import (
     CONGRESS_API_BASE,
     CONGRESS_API_PAGE_SIZE,
     CONGRESS_API_RATE_LIMIT,
     CONGRESS_GOV_API_KEY,
+    EVENT_ID_BACKFILL_TITLE_RATIO,
     RAW_HEARINGS_DIR,
     TARGET_CONGRESS,
 )
+from src.fetch_meetings import _retry_wait, _transport_retry_wait
+from src.match import normalize_title
 
 
 def _hearing_cache_path(congress: int) -> Path:
@@ -131,6 +135,22 @@ def normalize_hearing(hearing: dict) -> dict:
     }
 
 
+def _backfill_event_id(hearing: dict, meetings: list[dict]) -> str | None:
+    """Borrow an eventID only from a meeting whose title agrees with the hearing's.
+
+    Meetings often list the jackets of other same-day hearings too.
+    """
+    h_title = normalize_title(hearing.get("title", ""))
+    if not h_title:
+        return None
+    best_id, best_ratio = None, EVENT_ID_BACKFILL_TITLE_RATIO - 1
+    for m in meetings:
+        ratio = fuzz.token_set_ratio(h_title, normalize_title(m.get("title", "")))
+        if m.get("event_id") and ratio > best_ratio:
+            best_id, best_ratio = m["event_id"], ratio
+    return best_id
+
+
 def enrich_hearing_with_meeting_data(
     hearing: dict, jacket_meeting_map: dict
 ) -> dict:
@@ -161,10 +181,9 @@ def enrich_hearing_with_meeting_data(
     # Effective codes = union of both sources
     effective = list(set(hearing_codes) | set(meeting_codes))
 
-    # Fill in event_id if hearing API didn't have one
-    event_id = hearing.get("event_id")
-    if not event_id and meeting_info.get("event_id"):
-        event_id = meeting_info["event_id"]
+    event_id = hearing.get("event_id") or _backfill_event_id(
+        hearing, meeting_info.get("meetings", [])
+    )
 
     return {
         **hearing,
@@ -214,17 +233,17 @@ def fetch_all_hearing_details(
                         break
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code in (429, 500, 502, 503) and attempt < 4:
-                            wait = 2 ** (attempt + 1)
+                            wait = _retry_wait(e.response.status_code, attempt)
                             print(f"    Retry {attempt + 1} for {jacket}"
                                   f" ({e.response.status_code}), waiting {wait}s...")
                             time.sleep(wait)
                         else:
                             raise
-                    except (httpx.ReadTimeout, httpx.ConnectTimeout):
+                    except httpx.TransportError:  # timeouts and dropped connections
                         if attempt < 4:
-                            wait = 2 ** (attempt + 1)
+                            wait = _transport_retry_wait(attempt)
                             print(f"    Retry {attempt + 1} for {jacket}"
-                                  f" (timeout), waiting {wait}s...")
+                                  f" (connection), waiting {wait}s...")
                             time.sleep(wait)
                         else:
                             raise

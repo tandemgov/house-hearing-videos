@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Additional matching layers: token-set, substring, date+description keyword disambiguation, and same-committee/same-date fallbacks (13 methods total)
 - GitHub Actions weekly pipeline run with automated coverage-trend tracking
 - `loc_id` (Library of Congress identifier) column in the output
+- `run_all.py --keep-videos`: with `--force`, refresh Congress.gov data while reusing cached YouTube data
 
 ### Changed
 
@@ -22,7 +23,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Layer 1 eventID matching hardened: digit-bounded matching (an eventID no longer matches inside a longer number), explicit `EventID=` labels trusted regardless of upload date, bare-number occurrences now require the video date to pass the 30-day sanity window (archive-filename date fragments like `hrs04IR2172_110119` previously collided with 6-digit eventIDs)
 - `benchmark_event_id_accuracy` renamed to `benchmark_event_id_recall` — it measures how many eventID hearings got any match, not whether the match is correct, and its output key now says so
 - Output files renamed to drop the vestigial `_all` suffix: `crosswalk.csv`, `all_matches.csv`, `validation_report.json`
-- Coverage now spans all 111th–119th hearings with full any-source analysis: 9,512 of 13,024 hearings (73%) have a discoverable video; 7,690 high-confidence YouTube matches in the crosswalk, plus 1,481 lower-confidence matches for review
+- Coverage now spans all 111th–119th hearings with full any-source analysis: 10,031 of 13,304 hearings (75%) have a discoverable video; 7,365 YouTube matches in the crosswalk, plus 2,508 lower-precision matches for review
+
+### Fixed
+
+- Hearings lacking an eventID now borrow one only from a meeting whose title agrees with theirs; meetings often list other same-day hearings' jackets, which matched hearings to the wrong video
+- Substring and token-set layers reject single-member clips ("Opening Statement", "Q&A", "Rep. X questions panel") that were entering the net-new crosswalk
+- Fetches retry dropped connections and back off properly on 429; fetch failures now abort the run instead of skipping a congress's net-new check
+- Outputs regenerated from Congress.gov data as of 2026-10-24 (YouTube data still March 2026): 13,304 hearings, 7,365 crosswalk rows, 3,527 net-new
 
 ### Removed
 

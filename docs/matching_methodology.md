@@ -66,13 +66,15 @@ Checks if one normalized title is a substring of the other (minimum 15 character
 
 **Why a separate layer?** Some committees prepend or append boilerplate to their YouTube titles. Fuzzy matching penalizes this extra text, but substring matching handles it cleanly.
 
+**Clip guard (3b and 3c).** Because these layers tolerate extra words, they also accept single-member clips titled after the hearing ("Chairman Miller's Opening Statement: …", "Rep. Garamendi questions panel at hearing on …"). Both layers reject a video when the words it adds to the hearing title include a clip marker (opening, closing, statement, remarks, question(s), Q&A, testimony) or a member honorific (Rep., Mr., Ms., Del., RM, Congressman/Congresswoman); see `looks_like_clip()` in `src/match.py`. Words already in the hearing title don't count, so "Questions Regarding the U.S. Census" still matches its own video.
+
 ### Layer 3c: Token-set ratio + nearby date (Confidence: 0.55–0.68)
 
 Uses `token_set_ratio` from the `thefuzz` library instead of `token_sort_ratio`. This metric asks: "are all the words from the shorter title present in the longer one?" It requires a threshold of 85%, both normalized titles to be at least 10 characters, and `token_sort_ratio` to be below 80% (otherwise Layer 3 would already have matched).
 
 **Why a separate layer?** Some hearings have short, keyword-rich titles (e.g., "THE JFK FILES") while the corresponding video has a much longer descriptive title ("Task Force on the Declassification of Federal Secrets: the JFK Files"). `token_sort_ratio` gives only ~32% for this pair because of the length mismatch, but `token_set_ratio` gives 100% because all tokens from the short title appear in the long one.
 
-**Why below 0.70 confidence?** `token_set_ratio` is generous — common government jargon can cause coincidental overlaps, so the layer was assigned a cautious confidence. Measured precision turned out to be ~99% (see [Measured precision](#measured-precision)), so this method is included in the crosswalk despite its low assigned confidence — an example of why the crosswalk is gated on measured precision rather than the assigned score.
+**Why below 0.70 confidence?** `token_set_ratio` is generous — common government jargon can cause coincidental overlaps, so the layer was assigned a cautious confidence. Measured precision turned out to be ~94–99% (see [Measured precision](#measured-precision)), so this method is included in the crosswalk despite its low assigned confidence — an example of why the crosswalk is gated on measured precision rather than the assigned score.
 
 ### Layer 4: Fuzzy title + relaxed date (Confidence: 0.50–0.75)
 
@@ -100,7 +102,7 @@ The pipeline cross-references both sources via `enrich_hearing_with_meeting_data
 2. For each hearing, looks up its jacket in the meeting map
 3. Merges committee codes from both sources into `effective_committee_codes`
 4. Flags discrepancies for logging
-5. Fills in missing `event_id` from the meeting map when the hearing API lacks one
+5. Fills in a missing `event_id` from the meeting map only when the meeting title agrees with the hearing title (token-set ratio ≥ 70, `EVENT_ID_BACKFILL_TITLE_RATIO`), choosing the best-agreeing meeting when a jacket appears in several. Meeting records often list the jackets of other same-day hearings, so taking the first meeting that names a jacket pinned some hearings to a different proceeding's video.
 
 Matching uses the merged `effective_committee_codes`, so a hearing miscoded in one API can still match against the correct committee's YouTube videos.
 
@@ -149,26 +151,27 @@ When all other layers and fallbacks fail, a final catch-all matches purely by co
 
 The committee-meeting API's `videos` field links actual YouTube URLs for thousands of meetings. That is an answer key the matcher never sees: for every matched hearing where the API links its own video, we can check whether the pipeline picked the same one. `ground_truth_precision()` in `src/validate.py` runs this on every pipeline run (results land in `validation_report.json`); `scripts/measure_precision.py` runs it standalone from cached data and reports the re-gated crosswalk.
 
-Disagreements are split by title similarity into `alt_upload` (different video, title still matches the hearing — usually another upload of the same proceeding) and `likely_wrong`. Strict precision counts only exact agreement; lenient precision also counts alt-uploads. Measured on the pre-Layer-0 dataset (3,577 labeled matches):
+Disagreements are split by title similarity into `alt_upload` (different video, title still matches the hearing — usually another upload of the same proceeding) and `likely_wrong`. Strict precision counts only exact agreement; lenient precision also counts alt-uploads. Measured on the October 2026 run (4,121 labeled matches; the trusted set was first chosen from an earlier pre-Layer-0 measurement on 3,577 labeled matches):
 
 | Method | Assigned confidence | Lenient precision | Labeled n |
 |---|---|---:|---:|
-| exact_date_title | 0.95 | ~100% | 1,017 |
-| fuzzy_title_exact_date | 0.70–0.90 | ~100% | 406 |
-| token_set_nearby_date | 0.55–0.68 | ~99% | 90 |
-| substring_nearby_date | 0.80–0.88 | ~98% | 100 |
-| event_id_exact | 1.0 | ~96% | 1,624 |
-| date_committee_unique | 0.85 | ~72% | 29 |
-| date_description_keywords | 0.75–0.85 | ~64% | 103 |
-| description_bills | 0.40–0.65 | ~63% | 38 |
-| date_committee_only_best_guess | 0.20–0.30 | ~40% | 129 |
-| date_description_keywords_relaxed | 0.45–0.60 | ~32% | 37 |
+| exact_date_title | 0.95 | ~100% | 508 |
+| fuzzy_title_exact_date | 0.70–0.90 | ~100% | 290 |
+| event_id_exact | 1.0 | ~98% | 1,054 |
+| substring_nearby_date | 0.80–0.88 | ~97% | 62 |
+| token_set_nearby_date | 0.55–0.68 | ~94% | 63 |
+| date_description_keywords | 0.75–0.85 | ~65% | 78 |
+| date_committee_unique | 0.85 | ~59% | 22 |
+| description_bills | 0.40–0.65 | ~55% | 29 |
+| date_description_keywords_relaxed | 0.45–0.60 | ~41% | 22 |
+| date_committee_only_best_guess | 0.20–0.30 | ~26% | 108 |
 
 Three caveats, stated so this table is not over-read:
 
 1. **Lenient precision is an upper bound.** The alt-upload classifier uses the same title-similarity family as the matcher, so a member *clip* titled after the hearing can pass.
 2. **The labeled sample skews easy.** Hearings the API covers are concentrated in newer congresses with better-run channels; the net-new rows skew toward the 111th–114th Congresses, where committee channels posted clips, so true net-new precision is likely somewhat lower per method.
 3. **`api_video_direct` (Layer 0) is circular here** — it takes its video from the answer key, so its row in the report is a consistency check, not evidence.
+4. **`likely_wrong` can also undercount precision.** Truncated video titles ("Get It Right This Time: A Victims-Centered...") fall below the alt-upload title threshold even when the video is right; token-set's four `likely_wrong` rows in October 2026 were of this kind, which is why it stays trusted at ~94%.
 
 ## Known limitations
 
@@ -178,13 +181,13 @@ Three caveats, stated so this table is not over-read:
 4. **Title divergence**: Some committees use significantly different titles on YouTube than the official hearing title, which may not be captured by fuzzy matching. A known case is Financial Services, which truncates long titles with "..." on YouTube, causing fuzzy match scores to fall just below the 80% threshold.
 5. **Majority/minority channel split**: The `congress-legislators` YAML may point to a minority-party channel (e.g., House Administration Democrats) rather than the majority channel that hosts full hearings. This causes the pipeline to find only clips, not full recordings.
 6. **Generic video titles**: Some committees (Rules, Natural Resources) use template titles that carry no hearing-specific information. The committee+date fallback handles these, but when multiple hearings occur on the same day, the match is a best guess that requires manual review.
-7. **Review-queue matches need review**: The aggressive fallback layers trade precision for recall — they measured 32–72% precision against the API's own video links. These matches appear in `all_matches.csv` but are excluded from the primary crosswalk and should be manually verified before use. The dominant failure mode is a member's clip from the right committee and day rather than the full hearing.
+7. **Review-queue matches need review**: The aggressive fallback layers trade precision for recall — they measured 26–65% precision against the API's own video links. These matches appear in `all_matches.csv` but are excluded from the primary crosswalk and should be manually verified before use. The dominant failure mode is a member's clip from the right committee and day rather than the full hearing.
 8. **Hearings with no committee code**: ~94 hearings come back from the Congress.gov hearing API with an empty `committeeCode`. They can't be scoped to any channel and are therefore unmatchable — a data-quality issue upstream, not a matching failure.
 
 ## Future work
 
 These are known opportunities to raise coverage, in rough priority order:
 
-- **The pre-eventID era (111th–114th Congresses) dominates the gap.** Roughly 3,250 of the 3,512 "no discoverable video" hearings are from 2009–2016, before most committees adopted YouTube. The likely off-YouTube source for these is the **C-SPAN archive**, which holds committee-hearing video back to 1987. C-SPAN access for bulk crosswalking requires coordination with the Center for C-SPAN Scholarship & Engagement (CCSE) at Purdue University — there is an academic API, but it is undocumented and gated, and automated scraping of c-span.org likely violates their terms. A manual spot-check of 20–30 older unmatched hearings would quantify the potential before any integration is scoped.
+- **The pre-eventID era (111th–114th Congresses) dominates the gap.** Roughly 3,000 of the 3,273 "no discoverable video" hearings are from 2009–2016, before most committees adopted YouTube. The likely off-YouTube source for these is the **C-SPAN archive**, which holds committee-hearing video back to 1987. C-SPAN access for bulk crosswalking requires coordination with the Center for C-SPAN Scholarship & Engagement (CCSE) at Purdue University — there is an academic API, but it is undocumented and gated, and automated scraping of c-span.org likely violates their terms. A manual spot-check of 20–30 older unmatched hearings would quantify the potential before any integration is scoped.
 - **Tune the fuzzy threshold for truncated titles.** Financial Services (and others) truncate long titles with "..." on YouTube, landing fuzzy scores at ~79 — just under the 80 threshold. A targeted normalization or a slightly lower threshold for the truncation case would recover these without broadly sacrificing precision.
 - **Select/special committees with low match rates** are tracked in [Committee Channels](committee_channels.md#known-select-committee-gaps).

@@ -170,6 +170,7 @@ class TestBuildJacketMeetingMap:
         assert result["60494"]["video_ids"] == ["eg-TRtZDX6A"]
         assert result["60494"]["committee_codes"] == ["hlzs00"]
         assert result["60494"]["event_id"] == "118132"
+        assert result["60494"]["meetings"] == [{"event_id": "118132", "title": ""}]
 
     def test_merges_multiple_meetings(self):
         meetings = [
@@ -194,3 +195,4 @@ class TestBuildJacketMeetingMap:
         assert "12345" in result
         assert set(result["12345"]["video_ids"]) == {"abc12345678", "def12345678"}
         assert set(result["12345"]["committee_codes"]) == {"hsju00", "hsfa00"}
+        assert [m["event_id"] for m in result["12345"]["meetings"]] == ["100", "200"]

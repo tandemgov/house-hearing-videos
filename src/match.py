@@ -285,6 +285,27 @@ def match_layer_3_fuzzy_title(hearing: dict, video: dict) -> dict | None:
     }
 
 
+# Extra title words that mark a member's clip ("Opening Statement", "Rep. X questions panel").
+_CLIP_ACTION_WORDS = frozenset({
+    "opening", "closing", "statement", "statment", "remarks", "question",
+    "questions", "questioning", "testimony", "q",
+})
+_CLIP_SPEAKER_WORDS = frozenset({
+    "rep", "congressman", "congresswoman", "del", "mr", "ms", "mrs", "rm",
+})
+
+
+def looks_like_clip(hearing_title: str, video_title: str) -> bool:
+    """True when words the video title adds to the hearing title mark a clip.
+
+    Only added words count, so "Questions Regarding the U.S. Census" still matches its own video.
+    """
+    extra = set(normalize_title(video_title).split()) - set(
+        normalize_title(hearing_title).split()
+    )
+    return bool(extra & (_CLIP_ACTION_WORDS | _CLIP_SPEAKER_WORDS))
+
+
 def match_layer_3b_substring(hearing: dict, video: dict) -> dict | None:
     """Layer 3b: Nearby date + one title contains the other. Confidence 0.80-0.88."""
     extra_dates = get_video_dates(video)[1:]
@@ -295,6 +316,9 @@ def match_layer_3b_substring(hearing: dict, video: dict) -> dict | None:
     v_title = normalize_title(video.get("title", ""))
 
     if not h_title or not v_title or len(h_title) < 15 or len(v_title) < 15:
+        return None
+
+    if looks_like_clip(hearing.get("title", ""), video.get("title", "")):
         return None
 
     # Check if one is a substring of the other
@@ -327,6 +351,9 @@ def match_layer_3c_token_set(hearing: dict, video: dict) -> dict | None:
     v_title = normalize_title(video.get("title", ""))
 
     if len(h_title) < TOKEN_SET_MIN_TITLE_LENGTH or len(v_title) < TOKEN_SET_MIN_TITLE_LENGTH:
+        return None
+
+    if looks_like_clip(hearing.get("title", ""), video.get("title", "")):
         return None
 
     set_ratio = fuzz.token_set_ratio(h_title, v_title)

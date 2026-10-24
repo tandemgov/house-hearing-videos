@@ -34,6 +34,16 @@ _YT_VIDEO_RE = re.compile(
 )
 
 
+def _retry_wait(status_code: int, attempt: int) -> int:
+    """Back off; a 429 means the hourly quota is spent, so short waits just burn retries."""
+    return 60 * (attempt + 1) if status_code == 429 else 2 ** (attempt + 1)
+
+
+def _transport_retry_wait(attempt: int) -> int:
+    """Congress.gov drops connections in bursts that outlast exponential seconds."""
+    return 15 * (attempt + 1)
+
+
 def _meeting_cache_path(congress: int, event_id: str) -> Path:
     return RAW_MEETINGS_DIR / f"meeting_{congress}_{event_id}.json"
 
@@ -68,13 +78,12 @@ def fetch_meeting(
                 return data
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (429, 500, 502, 503) and attempt < 4:
-                    wait = 2 ** (attempt + 1)
-                    time.sleep(wait)
+                    time.sleep(_retry_wait(e.response.status_code, attempt))
                 else:
                     raise
-            except (httpx.ReadTimeout, httpx.ConnectTimeout):
+            except httpx.TransportError:  # timeouts and dropped connections
                 if attempt < 4:
-                    time.sleep(2 ** (attempt + 1))
+                    time.sleep(_transport_retry_wait(attempt))
                 else:
                     raise
         return None
@@ -193,7 +202,7 @@ def _fetch_meeting_list_page(
                 return resp.json()
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (429, 502, 503) and attempt < 4:
-                    time.sleep(2 ** (attempt + 1))
+                    time.sleep(_retry_wait(e.response.status_code, attempt))
                 elif e.response.status_code == 500:
                     if size > 7:
                         print(f"    500 at limit={size}, "
@@ -205,9 +214,9 @@ def _fetch_meeting_list_page(
                         raise
                 else:
                     raise
-            except (httpx.ReadTimeout, httpx.ConnectTimeout):
+            except httpx.TransportError:  # timeouts and dropped connections
                 if attempt < 4:
-                    time.sleep(2 ** (attempt + 1))
+                    time.sleep(_transport_retry_wait(attempt))
                 else:
                     raise
     return None
@@ -330,6 +339,7 @@ def build_jacket_meeting_map(
 
     Returns per jacket: video_ids, committee_codes, and event_id from
     the committee-meeting API. Used to cross-reference hearing data.
+    `meetings` keeps every meeting naming the jacket, for title-checked eventID backfill.
     """
     result: dict[str, dict] = {}
     for meeting in meetings:
@@ -337,6 +347,7 @@ def build_jacket_meeting_map(
         video_ids = extract_youtube_video_ids(meeting)
         committee_codes = extract_committee_codes(meeting)
         event_id = str(cm.get("eventId", ""))
+        meeting_ref = {"event_id": event_id, "title": cm.get("title") or ""}
 
         for jacket in extract_jacket_numbers(meeting):
             if jacket not in result:
@@ -344,8 +355,10 @@ def build_jacket_meeting_map(
                     "video_ids": video_ids,
                     "committee_codes": committee_codes,
                     "event_id": event_id,
+                    "meetings": [meeting_ref],
                 }
             else:
+                result[jacket]["meetings"].append(meeting_ref)
                 # Merge video IDs
                 if video_ids:
                     existing = set(result[jacket]["video_ids"])

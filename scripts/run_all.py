@@ -58,6 +58,10 @@ def main():
         "--force", action="store_true",
         help="Bypass cache and re-fetch all data",
     )
+    parser.add_argument(
+        "--keep-videos", action="store_true",
+        help="With --force, reuse cached YouTube video data and re-fetch only Congress.gov data",
+    )
     args = parser.parse_args()
 
     # Step 1: Fetch videos ONCE (not congress-specific)
@@ -67,7 +71,7 @@ def main():
     committee_map = get_committee_map()
     committees_with_yt = [c for c in committee_map.values() if c.youtube_id]
     videos_by_committee = fetch_all_committee_videos(
-        committees_with_yt, force_refresh=args.force
+        committees_with_yt, force_refresh=args.force and not args.keep_videos
     )
     total_videos = sum(len(v) for v in videos_by_committee.values())
     print(f"Total videos: {total_videos}")
@@ -83,13 +87,8 @@ def main():
         print(f"CONGRESS {congress}")
         print("=" * 60)
 
-        # Fetch hearings
-        try:
-            raw = fetch_all_hearings(congress, force_refresh=args.force)
-        except Exception as e:
-            print(f"  Error fetching hearings: {e}")
-            print("  Skipping this congress.")
-            continue
+        # Fail loudly: a skipped congress skews totals; re-run without --force resumes.
+        raw = fetch_all_hearings(congress, force_refresh=args.force)
 
         if not raw:
             print("  No hearings found, skipping.")
@@ -97,13 +96,7 @@ def main():
 
         print(f"  Hearing stubs: {len(raw)}")
 
-        # Fetch details
-        try:
-            fetch_all_hearing_details(congress, force_refresh=args.force)
-        except Exception as e:
-            print(f"  Error fetching details: {e}")
-            print("  Skipping this congress.")
-            continue
+        fetch_all_hearing_details(congress, force_refresh=args.force)
 
         hearings = load_normalized_hearings(congress)
         print(f"  Normalized hearings: {len(hearings)}")
@@ -119,25 +112,20 @@ def main():
         all_meeting_videos.update(meeting_videos)
 
         # Fetch full meeting list to discover jacket->video mappings
-        jacket_videos: dict[str, list[str]] = {}
-        jacket_meeting_map: dict[str, dict] = {}
-        try:
-            all_meetings = fetch_all_meetings_for_congress(
-                congress, force_refresh=args.force
-            )
-            jacket_meeting_map = build_jacket_meeting_map(all_meetings)
-            jacket_videos = {
-                k: v["video_ids"] for k, v in jacket_meeting_map.items()
-            }
-            all_jacket_videos.update(jacket_videos)
-            jv_with_video = sum(1 for v in jacket_videos.values() if v)
-            print(
-                f"  Jacket->video map: {len(jacket_videos)} jackets, "
-                f"{jv_with_video} with video"
-            )
-        except Exception as e:
-            print(f"  Warning: could not fetch meeting list: {e}")
-            print("  Jacket-based classification will be skipped.")
+        # Without this map, hearings lacking an eventID would all look net-new.
+        all_meetings = fetch_all_meetings_for_congress(
+            congress, force_refresh=args.force
+        )
+        jacket_meeting_map = build_jacket_meeting_map(all_meetings)
+        jacket_videos = {
+            k: v["video_ids"] for k, v in jacket_meeting_map.items()
+        }
+        all_jacket_videos.update(jacket_videos)
+        jv_with_video = sum(1 for v in jacket_videos.values() if v)
+        print(
+            f"  Jacket->video map: {len(jacket_videos)} jackets, "
+            f"{jv_with_video} with video"
+        )
 
         # Enrich hearings with meeting API data (cross-reference committee codes)
         hearings = [
